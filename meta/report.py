@@ -217,7 +217,8 @@ def _stacked_row(name: str, matches: list[dict]) -> str:
 
 
 def _grouped_section(
-    history: list[dict], key, label_fn, min_games: int = 2
+    history: list[dict], key, label_fn,
+    min_games: int = 2, limit: int = 12,
 ) -> str:
     groups: dict[str, list[dict]] = {}
     for match in history:
@@ -225,16 +226,21 @@ def _grouped_section(
     if not groups:
         return '<p class="empty">Pas encore de données.</p>'
     main = {n: m for n, m in groups.items() if len(m) >= min_games}
-    rest = [m for n, ms in groups.items() if n not in main for m in ms]
     if not main:  # everything is small, show as is
-        main, rest = groups, []
-    rows = [
-        _stacked_row(label_fn(name), main[name])
-        for name in sorted(main, key=lambda n: -len(main[n]))
+        main = dict(groups)
+    ordered = sorted(main, key=lambda n: -len(main[n]))[:limit]
+    rest = [
+        m for n, ms in groups.items() if n not in ordered for m in ms
     ]
+    rows = [_stacked_row(label_fn(name), main[name]) for name in ordered]
     if rest:
         rows.append(_stacked_row(f"autres ({len(rest)})", rest))
     return "".join(rows)
+
+
+def _matchup_label(key: str) -> str:
+    comp, _, profile = key.partition("|")
+    return f"{_composition_label(comp)} vs {profile}"
 
 
 def _skill_delta_section(history: list[dict]) -> str:
@@ -340,6 +346,17 @@ def generate_report(
 {_grouped_section(history, lambda m: m["composition"], _composition_label)}
 </section>
 </div>
+<section class="panel">
+<h2>Confrontations : votre doctrine contre la leur</h2>
+<p class="hint">Vos compositions face à chaque profil adverse.
+Bleu: victoires · gris: égalités · orange hachuré: défaites</p>
+{_grouped_section(
+    history,
+    lambda m: m["composition"] + "|" + m["ai_profile"],
+    _matchup_label,
+    min_games=1,
+)}
+</section>
 <section class="panel">
 <h2>Quelles compétences font gagner ?</h2>
 <p class="hint">Écart de points investis en moyenne entre vos victoires
