@@ -69,7 +69,7 @@ SKILLS: dict[str, SkillDef] = {
         label="Mécanique",
         description="Réparation automatique des unités près des bâtiments.",
         kind="advanced",
-        min_level=3,
+        min_level=4,
         max_points=5,
     ),
     "logistique": SkillDef(
@@ -77,7 +77,7 @@ SKILLS: dict[str, SkillDef] = {
         label="Logistique",
         description="Routes plus efficaces, transporteurs plus rapides.",
         kind="advanced",
-        min_level=4,
+        min_level=6,
         max_points=5,
     ),
     "espionnage": SkillDef(
@@ -85,7 +85,7 @@ SKILLS: dict[str, SkillDef] = {
         label="Espionnage",
         description="Révèle ponctuellement des zones adverses.",
         kind="advanced",
-        min_level=5,
+        min_level=8,
         max_points=3,
     ),
     "fortification": SkillDef(
@@ -93,7 +93,7 @@ SKILLS: dict[str, SkillDef] = {
         label="Fortification",
         description="Points de vie des bâtiments augmentés.",
         kind="advanced",
-        min_level=6,
+        min_level=10,
         max_points=5,
     ),
     "cartographie": SkillDef(
@@ -101,7 +101,7 @@ SKILLS: dict[str, SkillDef] = {
         label="Cartographie",
         description="Rayon de vision de toutes les unités augmenté.",
         kind="advanced",
-        min_level=7,
+        min_level=12,
         max_points=3,
     ),
     "conscription": SkillDef(
@@ -109,7 +109,7 @@ SKILLS: dict[str, SkillDef] = {
         label="Conscription",
         description="Les soldats sont formés plus vite.",
         kind="advanced",
-        min_level=8,
+        min_level=13,
         max_points=5,
     ),
     "pillage": SkillDef(
@@ -117,7 +117,7 @@ SKILLS: dict[str, SkillDef] = {
         label="Pillage",
         description="Chaque ennemi éliminé rapporte des ressources.",
         kind="advanced",
-        min_level=9,
+        min_level=14,
         max_points=5,
     ),
     "frenesie": SkillDef(
@@ -125,7 +125,7 @@ SKILLS: dict[str, SkillDef] = {
         label="Frénésie",
         description="Cadence d'attaque des soldats augmentée.",
         kind="advanced",
-        min_level=10,
+        min_level=16,
         max_points=5,
     ),
 }

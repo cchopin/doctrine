@@ -118,6 +118,7 @@ class BuildingSpec:
     cost: dict[ResourceType, int]
     build_work: int                  # worker ticks at base rate
     requires_skill: str | None = None
+    min_level: int = 1               # team level required to build
 
 
 BUILDING_SPECS: dict[BuildingType, BuildingSpec] = {
@@ -126,20 +127,22 @@ BUILDING_SPECS: dict[BuildingType, BuildingSpec] = {
     ),
     BuildingType.WAREHOUSE: BuildingSpec(
         symbol="E", label_fr="entrepôt", hp=150, sight=4,
-        cost={ResourceType.WOOD: 60}, build_work=50,
+        cost={ResourceType.WOOD: 60}, build_work=50, min_level=2,
     ),
     BuildingType.BARRACKS: BuildingSpec(
         symbol="C", label_fr="caserne", hp=200, sight=4,
         cost={ResourceType.WOOD: 40, ResourceType.ORE: 40}, build_work=70,
+        min_level=3,
     ),
     BuildingType.MARKET: BuildingSpec(
         symbol="M", label_fr="marché", hp=150, sight=4,
         cost={ResourceType.WOOD: 50, ResourceType.CRYSTAL: 20}, build_work=60,
+        min_level=5,
     ),
     BuildingType.TOWER: BuildingSpec(
         symbol="Y", label_fr="tour de garde", hp=180, sight=10,
         cost={ResourceType.ORE: 50, ResourceType.CRYSTAL: 15}, build_work=60,
-        requires_skill="science",
+        requires_skill="science", min_level=2,
     ),
 }
 

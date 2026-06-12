@@ -23,6 +23,9 @@ from meta.history import append_match, build_record, load_history
 from meta.progress import (
     DEFAULT_PROFILE_PATH,
     Profile,
+    XP_DRAW,
+    XP_LOSS,
+    XP_WIN,
     add_xp,
     load_profile,
     save_profile,
@@ -33,10 +36,6 @@ from meta.report import generate_report
 from meta.skills import SKILLS, unlocked_skills
 from render.screen import Renderer
 from render.viewport import Viewport
-
-XP_WIN = 100
-XP_DRAW = 40
-XP_LOSS = 15
 
 SPEED_STEPS = [0.25, 0.5, 1.0, 1.5, 2.0, 3.0, 4.0]
 
@@ -98,8 +97,8 @@ def build_game(
         level, skill_budget(level), ai_rng
     )
     configs = [
-        TeamConfig("Bleus", "blue", player_skills, is_player=True),
-        TeamConfig("Rouges", "red", ai_skills),
+        TeamConfig("Bleus", "blue", player_skills, is_player=True, level=level),
+        TeamConfig("Rouges", "red", ai_skills, level=level),
     ]
     return Game(gmap, bases, configs, seed=seed), ai_profile
 

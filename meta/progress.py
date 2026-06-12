@@ -14,6 +14,10 @@ DEFAULT_PROFILE_PATH = Path(__file__).resolve().parent.parent / "profile.json"
 BASE_BUDGET = 10
 POINTS_PER_LEVEL = 2
 
+XP_WIN = 100
+XP_DRAW = 40
+XP_LOSS = 15
+
 
 @dataclass
 class Profile:
@@ -25,7 +29,7 @@ class Profile:
 
 def xp_needed(level: int) -> int:
     """Experience required to go from `level` to `level + 1`."""
-    return 100 * level
+    return 200 * level
 
 
 def skill_budget(level: int) -> int:

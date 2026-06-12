@@ -496,24 +496,31 @@ def _plan_construction(game, team: Team) -> None:
     if hq is None:
         return
     have = {b.btype for b in game.buildings_of(team.tid)}
+
+    def allowed(btype: BuildingType) -> bool:
+        spec = BUILDING_SPECS[btype]
+        if btype in have or team.level < spec.min_level:
+            return False
+        if spec.requires_skill and team.sk(spec.requires_skill) <= 0:
+            return False
+        return True
+
     plan: tuple[BuildingType, tuple[int, int]] | None = None
-    if BuildingType.WAREHOUSE not in have:
+    if allowed(BuildingType.WAREHOUSE):
         far = _far_deposit(game, team, hq.pos)
         if far is not None:
             plan = (BuildingType.WAREHOUSE, far.pos)
-    if plan is None and BuildingType.BARRACKS not in have:
+    if plan is None and allowed(BuildingType.BARRACKS):
         if team.sk("combat") >= 1 or game.tick_count > 2400:
             plan = (BuildingType.BARRACKS, hq.pos)
-    if plan is None and BuildingType.MARKET not in have and team.sk("tradeur") >= 1:
+    if plan is None and allowed(BuildingType.MARKET) and team.sk("tradeur") >= 1:
         plan = (BuildingType.MARKET, hq.pos)
-    if plan is None and team.sk("science") >= 1 and BuildingType.TOWER not in have:
+    if plan is None and allowed(BuildingType.TOWER):
         plan = (BuildingType.TOWER, hq.pos)
     if plan is None:
         return
     btype, anchor = plan
     spec = BUILDING_SPECS[btype]
-    if spec.requires_skill and team.sk(spec.requires_skill) <= 0:
-        return
     if not team.can_afford(spec.cost):
         return
     pos = game.free_building_spot(anchor)

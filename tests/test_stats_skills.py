@@ -105,5 +105,37 @@ class TestEndgameSkills(unittest.TestCase):
         self.assertEqual(spec.requires_skill, "science")
 
 
+class TestBuildingLevelGates(unittest.TestCase):
+    def _rich_team(self, game):
+        team = game.teams[0]
+        for rtype in ResourceType:
+            team.stocks[rtype] = 500
+        # The AI only builds a warehouse near a far known rich deposit.
+        game.map.deposits[(25, 4)] = Deposit(25, 4, ResourceType.WOOD, 400)
+        game._update_visibility(team)
+        team.explored.add((25, 4))
+        return team
+
+    def _planned(self, game, team):
+        ai._plan_construction(game, team)
+        return {b.btype for b in game.construction_sites(team)}
+
+    def test_level_one_builds_nothing(self):
+        game = make_game(skills_a={"combat": 2, "tradeur": 2})
+        team = self._rich_team(game)
+        self.assertEqual(self._planned(game, team), set())
+
+    def test_level_two_unlocks_warehouse(self):
+        game = make_game(skills_a={"combat": 2}, level=2)
+        team = self._rich_team(game)
+        self.assertEqual(self._planned(game, team), {BuildingType.WAREHOUSE})
+
+    def test_level_three_unlocks_barracks(self):
+        game = make_game(skills_a={"combat": 2}, level=3)
+        team = self._rich_team(game)
+        game.start_construction(team, BuildingType.WAREHOUSE, (3, 3)).complete = True
+        self.assertEqual(self._planned(game, team), {BuildingType.BARRACKS})
+
+
 if __name__ == "__main__":
     unittest.main()

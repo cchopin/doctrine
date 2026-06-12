@@ -32,7 +32,10 @@ class TestProgress(unittest.TestCase):
         base = {s.key for s in unlocked_skills(1)}
         self.assertNotIn("science", base)
         self.assertIn("science", {s.key for s in unlocked_skills(2)})
-        endgame = {s.key for s in unlocked_skills(10)}
+        self.assertLess(
+            len(unlocked_skills(10)), len(unlocked_skills(16))
+        )
+        endgame = {s.key for s in unlocked_skills(16)}
         self.assertEqual(endgame, set(SKILLS))
 
 

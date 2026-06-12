@@ -86,6 +86,7 @@ class Game:
                 color=config.color,
                 skills=dict(config.skills),
                 is_player=config.is_player,
+                level=config.level,
             )
             self.teams[tid] = team
             bx, by = base_positions[tid]

@@ -37,6 +37,7 @@ class TeamConfig:
     color: str                     # renderer color key: "blue", "red", ...
     skills: dict[str, int]
     is_player: bool = False
+    level: int = 1                 # gates advanced buildings
 
 
 STARTING_STOCKS = {
@@ -54,6 +55,7 @@ class Team:
     color: str
     skills: dict[str, int]
     is_player: bool = False
+    level: int = 1
     alive: bool = True
     stocks: dict[ResourceType, int] = field(
         default_factory=lambda: dict(STARTING_STOCKS)

@@ -11,11 +11,12 @@ def make_game(
     skills_b: dict[str, int] | None = None,
     width: int = 30,
     height: int = 20,
+    level: int = 1,
 ) -> Game:
     gmap = GameMap(width, height)
     configs = [
-        TeamConfig("A", "blue", skills_a or {}, is_player=True),
-        TeamConfig("B", "red", skills_b or {}),
+        TeamConfig("A", "blue", skills_a or {}, is_player=True, level=level),
+        TeamConfig("B", "red", skills_b or {}, level=level),
     ]
     bases = [(2, height // 2), (width - 3, height // 2)]
     return Game(gmap, bases, configs, seed=1)
