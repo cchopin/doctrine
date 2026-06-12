@@ -68,24 +68,41 @@ LEGEND_LINES = [
     ("Touches", None),
     ("flèches: vue  p: pause", None),
     ("+/-: vitesse  l: légende", None),
-    ("q: quitter", None),
+    ("b: recentrer  q: quitter", None),
 ]
+
+BRIGHT_OFFSET = 10  # bright pair id = base pair id + offset
 
 
 class Renderer:
     def __init__(self, stdscr):
         self.stdscr = stdscr
         curses.curs_set(0)
+        self.has_bright = False
         if curses.has_colors():
             curses.start_color()
             curses.use_default_colors()
             for name, pid in PAIR_IDS.items():
                 curses.init_pair(pid, CURSES_COLORS[name], -1)
+            # Bright variants (colors 8 to 15) make units pop on the map.
+            if curses.COLORS >= 16:
+                self.has_bright = True
+                for name, pid in PAIR_IDS.items():
+                    curses.init_pair(
+                        pid + BRIGHT_OFFSET, CURSES_COLORS[name] + 8, -1
+                    )
 
     def color(self, name: str) -> int:
         if not curses.has_colors():
             return 0
         return curses.color_pair(PAIR_IDS.get(name, PAIR_IDS["white"]))
+
+    def bright(self, name: str) -> int:
+        if not self.has_bright:
+            return self.color(name)
+        return curses.color_pair(
+            PAIR_IDS.get(name, PAIR_IDS["white"]) + BRIGHT_OFFSET
+        )
 
     def _put(self, y: int, x: int, text: str, attr: int = 0) -> None:
         try:
@@ -163,7 +180,7 @@ class Renderer:
                 pos[1] - vp.y,
                 pos[0] - vp.x,
                 unit.spec.symbol,
-                self.color(color) | curses.A_BOLD,
+                self.bright(color) | curses.A_BOLD,
             )
 
     def _draw_building(
@@ -218,27 +235,29 @@ class Renderer:
         y += 2
         for team in game.teams.values():
             name = team.name + (" (vous)" if team.is_player else "")
-            attr = self.color(team.color) | curses.A_BOLD
+            attr = self.bright(team.color) | curses.A_BOLD
             if not team.alive:
                 name += " [détruit]"
-                attr |= curses.A_DIM
+                attr = self.color(team.color) | curses.A_DIM
             self._put(y, x0, name, attr)
+            score = f"{game.score(team):>5}"
+            self._put(y, x0 + PANEL_WIDTH - 1 - len(score), score)
             y += 1
-            self._put(y, x0, f" score {game.score(team)}")
+            self._stock_line(
+                y, x0 + 1, game,
+                (ResourceType.FOOD, team.stocks[ResourceType.FOOD]),
+                (ResourceType.WOOD, team.stocks[ResourceType.WOOD]),
+            )
             y += 1
-            s = team.stocks
-            self._put(
-                y, x0,
-                f" N{s[ResourceType.FOOD]:>4} B{s[ResourceType.WOOD]:>4}"
-                f" M{s[ResourceType.ORE]:>4}",
+            self._stock_line(
+                y, x0 + 1, game,
+                (ResourceType.ORE, team.stocks[ResourceType.ORE]),
+                (ResourceType.CRYSTAL, team.stocks[ResourceType.CRYSTAL]),
             )
             y += 1
             units = len(game.units_of(team.tid))
             builds = len(game.buildings_of(team.tid, only_complete=True))
-            self._put(
-                y, x0,
-                f" C{s[ResourceType.CRYSTAL]:>4}  un.{units:>3} bât.{builds}",
-            )
+            self._put(y, x0 + 1, f"unités {units:<3} bât. {builds}")
             y += 2
         if show_legend:
             for text, _ in LEGEND_LINES:
@@ -251,6 +270,21 @@ class Renderer:
                 else:
                     self._put(y, x0, text)
                 y += 1
+
+    def _stock_line(
+        self,
+        y: int,
+        x: int,
+        game: Game,
+        left: tuple[ResourceType, int],
+        right: tuple[ResourceType, int],
+    ) -> None:
+        """Two stocks on one line, prefixed by their colored map symbol."""
+        for i, (rtype, amount) in enumerate((left, right)):
+            char, cname = RESOURCE_CHARS[rtype]
+            cx = x + i * 11
+            self._put(y, cx, char, self.color(cname) | curses.A_BOLD)
+            self._put(y, cx + 1, f"{amount:>5}")
 
     # Bottom event bar
 
