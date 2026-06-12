@@ -19,6 +19,7 @@ from engine.ai import allocate_ai_skills
 from engine.game import DEFAULT_TIME_LIMIT_TICKS, Game, TICKS_PER_SECOND
 from engine.mapgen import generate_map
 from engine.team import TeamConfig
+from meta.history import append_match, build_record, load_history
 from meta.progress import (
     DEFAULT_PROFILE_PATH,
     Profile,
@@ -28,7 +29,8 @@ from meta.progress import (
     skill_budget,
     xp_needed,
 )
-from meta.skills import unlocked_skills
+from meta.report import generate_report
+from meta.skills import SKILLS, unlocked_skills
 from render.screen import Renderer
 from render.viewport import Viewport
 
@@ -63,7 +65,26 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
         "--level", type=int, default=None,
         help="force un niveau (test), sans toucher au profil",
     )
+    parser.add_argument(
+        "--stats", action="store_true",
+        help="génère la page web de statistiques et l'ouvre",
+    )
     return parser.parse_args(argv)
+
+
+def next_unlock(level: int) -> str:
+    """Teaser for the next skill unlocked by leveling up."""
+    upcoming = [s for s in SKILLS.values() if s.min_level > level]
+    if not upcoming:
+        return "Toutes les compétences sont débloquées"
+    skill = min(upcoming, key=lambda s: s.min_level)
+    return f"Prochain déblocage: {skill.label} (niveau {skill.min_level})"
+
+
+def xp_bar(profile: Profile, width: int = 20) -> str:
+    needed = xp_needed(profile.level)
+    filled = int(width * min(1.0, profile.xp / needed))
+    return f"[{'#' * filled}{'.' * (width - filled)}] {profile.xp}/{needed} xp"
 
 
 def build_game(
@@ -127,11 +148,12 @@ def prep_screen(stdscr, profile: Profile, level: int) -> dict[str, int] | None:
         spent = sum(allocation.values())
         title = f"Préparation de la partie  |  Niveau {level}"
         xp_line = (
-            f"XP {profile.xp}/{xp_needed(profile.level)}"
-            f"  Victoires {profile.wins}  Défaites {profile.losses}"
+            f"{xp_bar(profile)}  Victoires {profile.wins}"
+            f"  Défaites {profile.losses}"
         )
         stdscr.addstr(1, 2, title, curses.A_BOLD)
         stdscr.addstr(2, 2, xp_line, curses.A_DIM)
+        stdscr.addstr(3, 2, next_unlock(level), curses.A_DIM)
         stdscr.addstr(
             4, 2,
             f"Points à répartir: {budget - spent}/{budget}",
@@ -173,27 +195,73 @@ def prep_screen(stdscr, profile: Profile, level: int) -> dict[str, int] | None:
             return allocation
 
 
-def end_screen(stdscr, game: Game, lines: list[str]) -> None:
+def match_recap(game: Game, player_tid: int) -> list[str]:
+    """Side by side end of match statistics table."""
+    player = game.teams[player_tid]
+    enemy = next(t for t in game.teams.values() if t.tid != player_tid)
+    rows = [
+        ("", player.name, enemy.name),
+        ("Score", game.score(player), game.score(enemy)),
+        ("Zones explorées", len(player.explored), len(enemy.explored)),
+        (
+            "Ressources récoltées",
+            player.stats.total_collected,
+            enemy.stats.total_collected,
+        ),
+        ("Unités formées", player.stats.units_trained, enemy.stats.units_trained),
+        ("Unités perdues", player.stats.units_lost, enemy.stats.units_lost),
+        ("Unités éliminées", player.stats.units_killed, enemy.stats.units_killed),
+        (
+            "Bâtiments construits",
+            player.stats.buildings_built,
+            enemy.stats.buildings_built,
+        ),
+        (
+            "Bâtiments détruits",
+            player.stats.buildings_destroyed,
+            enemy.stats.buildings_destroyed,
+        ),
+        ("Dégâts infligés", player.stats.damage_dealt, enemy.stats.damage_dealt),
+    ]
+    return [f"{label:<22}{left:>8}{right:>9}" for label, left, right in rows]
+
+
+def end_screen(
+    stdscr, renderer: Renderer, title: str, title_color: str,
+    lines: list[str],
+) -> bool:
+    """Show the recap. Returns True to start a new match, False to quit."""
     stdscr.nodelay(False)
     stdscr.erase()
     rows, cols = stdscr.getmaxyx()
-    y = rows // 2 - len(lines) // 2 - 1
-    for i, line in enumerate(lines):
-        attr = curses.A_BOLD if i == 0 else 0
-        try:
-            stdscr.addstr(y + i, max(0, (cols - len(line)) // 2), line, attr)
-        except curses.error:
-            pass
-    prompt = "Appuyez sur une touche pour quitter"
+    total = len(lines) + 2
+    y = max(1, rows // 2 - total // 2 - 1)
     try:
         stdscr.addstr(
-            y + len(lines) + 2, max(0, (cols - len(prompt)) // 2),
+            y, max(0, (cols - len(title)) // 2), title,
+            renderer.bright(title_color) | curses.A_BOLD,
+        )
+    except curses.error:
+        pass
+    for i, line in enumerate(lines):
+        try:
+            stdscr.addstr(
+                y + 2 + i, max(0, (cols - len(line)) // 2), line
+            )
+        except curses.error:
+            pass
+    prompt = "Une touche: nouvelle partie  |  q: quitter"
+    try:
+        stdscr.addstr(
+            min(rows - 1, y + total + 1),
+            max(0, (cols - len(prompt)) // 2),
             prompt, curses.A_DIM,
         )
     except curses.error:
         pass
     stdscr.refresh()
-    stdscr.getch()
+    key = stdscr.getch()
+    return key not in (ord("q"), ord("Q"))
 
 
 def run_match(stdscr, game: Game, renderer: Renderer) -> bool:
@@ -238,6 +306,10 @@ def run_match(stdscr, game: Game, renderer: Renderer) -> bool:
                 viewport.move(0, -2)
             elif key == curses.KEY_DOWN:
                 viewport.move(0, 2)
+            elif key in (ord("b"), ord("B")):
+                base = game.hq(game.teams[player_tid])
+                if base is not None:
+                    viewport.center_on(base.x, base.y)
             elif key == curses.KEY_RESIZE:
                 pass
         now = time.monotonic()
@@ -264,42 +336,63 @@ def run_match(stdscr, game: Game, renderer: Renderer) -> bool:
 def run_ui(stdscr, args: argparse.Namespace) -> None:
     renderer = Renderer(stdscr)
     profile = load_profile(args.profile)
-    level = args.level or profile.level
-    allocation = prep_screen(stdscr, profile, level)
-    if allocation is None:
-        return
-    seed = args.seed if args.seed is not None else random.randrange(10**9)
-    game, _ = build_game(allocation, level, seed)
-    finished = run_match(stdscr, game, renderer)
-    if not finished:
-        return
-    player_tid = next(t.tid for t in game.teams.values() if t.is_player)
-    lines = [f"Graine de la partie: {seed}"]
-    if game.winner == player_tid:
-        xp = XP_WIN
-        profile.wins += 1
-        lines.insert(0, "Victoire !")
-    elif game.winner is None:
-        xp = XP_DRAW
-        lines.insert(0, "Égalité.")
-    else:
-        xp = XP_LOSS
-        profile.losses += 1
-        lines.insert(0, "Défaite...")
-    minutes = game.elapsed_seconds / 60
-    lines.append(f"Durée: {minutes:.1f} min ({game.end_reason})")
-    if args.level is None:
-        gained = add_xp(profile, xp)
-        lines.append(f"Expérience gagnée: +{xp}")
-        if gained:
-            lines.append(f"Niveau supérieur ! Vous êtes niveau {profile.level}")
-        save_profile(profile, args.profile)
-    end_screen(stdscr, game, lines)
+    while True:
+        level = args.level or profile.level
+        allocation = prep_screen(stdscr, profile, level)
+        if allocation is None:
+            return
+        seed = args.seed if args.seed is not None else random.randrange(10**9)
+        game, ai_profile = build_game(allocation, level, seed)
+        finished = run_match(stdscr, game, renderer)
+        if not finished:
+            return
+        player_tid = next(t.tid for t in game.teams.values() if t.is_player)
+        if game.winner == player_tid:
+            xp, result, title, color = XP_WIN, "victoire", "VICTOIRE !", "green"
+            profile.wins += 1
+        elif game.winner is None:
+            xp, result, title, color = XP_DRAW, "egalite", "ÉGALITÉ", "yellow"
+        else:
+            xp, result, title, color = XP_LOSS, "defaite", "DÉFAITE...", "red"
+            profile.losses += 1
+        minutes = game.elapsed_seconds / 60
+        lines = [
+            f"Durée {minutes:.1f} min ({game.end_reason})"
+            f"  |  adversaire {ai_profile}  |  graine {seed}",
+            "",
+        ]
+        lines.extend(match_recap(game, player_tid))
+        lines.append("")
+        if args.level is None:
+            gained = add_xp(profile, xp)
+            save_profile(profile, args.profile)
+            lines.append(
+                f"Expérience +{xp}   niveau {profile.level} {xp_bar(profile)}"
+            )
+            if gained:
+                lines.append(
+                    f"NIVEAU SUPÉRIEUR ! Vous êtes maintenant"
+                    f" niveau {profile.level}"
+                )
+            lines.append(next_unlock(profile.level))
+        record = build_record(game, player_tid, result, seed, level, ai_profile)
+        append_match(record)
+        report_path = generate_report(load_history())
+        lines.append(f"Statistiques détaillées: {report_path.name}")
+        if not end_screen(stdscr, renderer, title, color, lines):
+            return
 
 
 def main(argv: list[str] | None = None) -> int:
     locale.setlocale(locale.LC_ALL, "")
     args = parse_args(argv if argv is not None else sys.argv[1:])
+    if args.stats:
+        import webbrowser
+
+        path = generate_report(load_history())
+        print(f"Page de statistiques générée: {path}")
+        webbrowser.open(path.as_uri())
+        return 0
     if args.headless:
         run_headless(args)
         return 0
