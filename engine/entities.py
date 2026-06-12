@@ -44,7 +44,7 @@ UNIT_SPECS: dict[UnitType, UnitSpec] = {
     UnitType.SOLDIER: UnitSpec(
         symbol="S", label_fr="soldat", hp=80, damage=8, speed=0.30,
         capacity=0, sight=6,
-        cost={ResourceType.FOOD: 25, ResourceType.ORE: 15}, train_work=90,
+        cost={ResourceType.FOOD: 25, ResourceType.ORE: 25}, train_work=90,
     ),
 }
 
@@ -149,7 +149,7 @@ BUILDING_SPECS: dict[BuildingType, BuildingSpec] = {
 # Buildings able to shoot back: btype -> (range, damage, period in ticks)
 BUILDING_ATTACKS: dict[BuildingType, tuple[int, int, int]] = {
     BuildingType.TOWER: (3, 5, 6),
-    BuildingType.HQ: (2, 3, 6),
+    BuildingType.HQ: (3, 6, 5),
 }
 
 

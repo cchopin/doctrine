@@ -102,7 +102,7 @@ def _update_flee(game, unit: Unit, team: Team) -> None:
     if hq is None or _near(unit, hq.pos, 2):
         return
     _set_destination(game, unit, hq.pos)
-    _follow_path(game, unit, unit.spec.speed * team.speed_mult * 1.2)
+    _follow_path(game, unit, unit.spec.speed * team.march_mult * 1.2)
 
 
 # Exploration (shared by scouts, idle soldiers and jobless workers)
@@ -134,9 +134,15 @@ def _update_scout(game, unit: Unit, team: Team) -> None:
 
 # Worker: build first, then harvest, otherwise explore
 
+REPAIR_TRIGGER = 0.8       # repair buildings below this hp ratio
+REPAIR_HP_PER_WORK = 3.0   # hp restored per unit of build work
+
+
 def _update_worker(game, unit: Unit, team: Team) -> None:
-    speed = unit.spec.speed * team.speed_mult
+    speed = unit.spec.speed * team.march_mult
     site = _pick_construction_site(game, unit, team)
+    if site is None:
+        site = _pick_repair_target(game, unit, team)
     if site is not None:
         _work_on_site(game, unit, team, site, speed)
         return
@@ -172,12 +178,41 @@ def _pick_construction_site(game, unit: Unit, team: Team) -> Building | None:
     return None
 
 
+def _pick_repair_target(game, unit: Unit, team: Team) -> Building | None:
+    """Damaged friendly building to patch up; construction is also the
+    siege defense stat."""
+    damaged = [
+        b
+        for b in game.buildings_of(team.tid, only_complete=True)
+        if b.hp < b.max_hp * REPAIR_TRIGGER
+    ]
+    if not damaged:
+        return None
+    if unit.target_building_id is not None:
+        for building in damaged:
+            if building.bid == unit.target_building_id:
+                return building
+    damaged.sort(key=lambda b: _manhattan(unit.pos, b.pos))
+    for building in damaged:
+        if game.builders_on(building.bid) < MAX_BUILDERS_PER_SITE:
+            return building
+    return None
+
+
 def _work_on_site(game, unit: Unit, team: Team, site: Building, speed: float) -> None:
     unit.state = UnitState.BUILD
     unit.target_building_id = site.bid
     if _near(unit, site.pos, 1):
         unit.path = []
         unit.dest = None
+        if site.complete:  # repair job
+            site.hp = min(
+                site.max_hp,
+                site.hp + team.build_rate * REPAIR_HP_PER_WORK,
+            )
+            if site.hp >= site.max_hp:
+                unit.target_building_id = None
+            return
         site.progress += team.build_rate
         if site.progress >= site.spec.build_work:
             site.complete = True
@@ -314,7 +349,7 @@ def _squad_size(team: Team) -> int:
 
 
 def _update_soldier(game, unit: Unit, team: Team) -> None:
-    speed = unit.spec.speed * team.speed_mult
+    speed = unit.spec.speed * team.march_mult
     soldiers = game.unit_counts(team).get(UnitType.SOLDIER, 0)
     required = _squad_size(team)
     if team.attacking:
@@ -323,13 +358,30 @@ def _update_soldier(game, unit: Unit, team: Team) -> None:
     elif soldiers >= required:
         team.attacking = True
     attack_mode = team.attacking
+    # Defense alarm: an intruder near the HQ pulls every soldier home,
+    # so defenders fight together instead of piecemeal.
+    intruder = _intruder_near_base(game, unit, team)
+    if intruder is not None:
+        unit.state = UnitState.FIGHT
+        if combat.in_melee_range(unit.x, unit.y, intruder.x, intruder.y):
+            if unit.attack_cooldown == 0:
+                dmg = combat.attack(
+                    unit, intruder, _attack_mult(game, unit, team),
+                    team.attack_period,
+                )
+                team.stats.damage_dealt += dmg
+                on_damaged(game, intruder)
+            return
+        _chase(game, unit, intruder.pos, speed)
+        return
     target = _nearest_visible_enemy(game, unit, team)
     if target is not None:
         unit.state = UnitState.FIGHT
         if combat.in_melee_range(unit.x, unit.y, target.x, target.y):
             if unit.attack_cooldown == 0:
                 dmg = combat.attack(
-                    unit, target, team.damage_mult, team.attack_period
+                    unit, target, _attack_mult(game, unit, team),
+                    team.attack_period,
                 )
                 team.stats.damage_dealt += dmg
                 on_damaged(game, target)
@@ -346,7 +398,7 @@ def _update_soldier(game, unit: Unit, team: Team) -> None:
             if unit.attack_cooldown == 0:
                 dmg = combat.attack(
                     unit, building, team.damage_mult, team.attack_period
-                )
+                )  # no home bonus when razing buildings
                 team.stats.damage_dealt += dmg
             return
         _chase(game, unit, building.pos, speed)
@@ -375,6 +427,36 @@ def _guard_base(game, unit: Unit, team: Team, speed: float) -> None:
                 break
     if unit.path:
         _follow_path(game, unit, speed)
+
+
+ALARM_RADIUS = 14
+HOME_GROUND_RADIUS = 15
+HOME_GROUND_BONUS = 1.25
+
+
+def _attack_mult(game, unit: Unit, team: Team) -> float:
+    """Soldiers fight harder on home ground (defender advantage)."""
+    hq = game.hq(team)
+    if hq is not None and _manhattan(unit.pos, hq.pos) <= HOME_GROUND_RADIUS:
+        return team.damage_mult * HOME_GROUND_BONUS
+    return team.damage_mult
+
+
+def _intruder_near_base(game, unit: Unit, team: Team) -> Unit | None:
+    hq = game.hq(team)
+    if hq is None:
+        return None
+    best = None
+    best_dist = None
+    for other in game.units.values():
+        if other.team_id == unit.team_id or other.pos not in team.visible:
+            continue
+        if _manhattan(other.pos, hq.pos) > ALARM_RADIUS:
+            continue
+        dist = _manhattan(unit.pos, other.pos)
+        if best_dist is None or dist < best_dist:
+            best, best_dist = other, dist
+    return best
 
 
 def _nearest_visible_enemy(game, unit: Unit, team: Team) -> Unit | None:
@@ -426,9 +508,12 @@ def _desired_units(game, team: Team) -> dict[UnitType, int]:
         UnitType.WORKER: min(8, 4 + team.sk("recolte") // 2),
         UnitType.TRANSPORTER: min(5, 1 + workers // 3 + team.sk("transport") // 3),
         UnitType.SCOUT: min(3, 1 + team.sk("exploration") // 4),
-        # Always enough to eventually form an attack squad.
+        # Always enough to eventually form an attack squad; food surplus
+        # funds extra soldiers, so economies counter armies with numbers.
         UnitType.SOLDIER: min(
-            12, max(_squad_size(team) + 1, 2 + team.sk("combat"))
+            12,
+            max(_squad_size(team) + 1, 2 + team.sk("combat"))
+            + min(4, team.stocks.get(ResourceType.FOOD, 0) // 200),
         ),
     }
 
@@ -460,12 +545,17 @@ def _plan_training(game, team: Team) -> None:
         if ratio >= 1.0:
             break
         spec = UNIT_SPECS[utype]
-        if not team.can_afford(spec.cost):
+        cost = spec.cost
+        if utype is UnitType.SOLDIER:
+            cost = {
+                r: round(n * team.soldier_cost_mult) for r, n in cost.items()
+            }
+        if not team.can_afford(cost):
             continue
         trainer = _pick_trainer(trainers, utype)
         if trainer is None:
             continue
-        team.pay(spec.cost)
+        team.pay(cost)
         trainer.training = utype
         work = spec.train_work
         if utype is UnitType.SOLDIER:
@@ -569,10 +659,17 @@ AI_PROFILES: dict[str, dict[str, int]] = {
 
 
 def allocate_ai_skills(
-    level: int, budget: int, rng: random.Random
+    level: int,
+    budget: int,
+    rng: random.Random,
+    profile_name: str | None = None,
 ) -> tuple[dict[str, int], str]:
-    """Spread the budget over unlocked skills following a random profile."""
-    profile_name = rng.choice(sorted(AI_PROFILES))
+    """Spread the budget over unlocked skills following a profile.
+
+    The profile is drawn at random unless one is forced (balancing runs).
+    """
+    if profile_name is None:
+        profile_name = rng.choice(sorted(AI_PROFILES))
     weights = AI_PROFILES[profile_name]
     available = unlocked_skills(level)
     alloc = {s.key: 0 for s in available}

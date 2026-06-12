@@ -85,6 +85,14 @@ gisements, les transporteurs font la navette vers la base, les éclaireurs
 lèvent le brouillard de guerre, les soldats défendent la base puis
 attaquent dès qu'une escouade de trois est constituée.
 
+L'équilibrage repose sur des contres : les soldats au delà de trois
+consomment de la nourriture (la famine frappe les armées sans économie),
+les soldats d'élite coûtent plus cher, les troupes loin de leurs
+bâtiments subissent une attrition (atténuée par la logistique), les
+défenseurs frappent plus fort près de leur QG et les ouvriers réparent
+les bâtiments assiégés (la construction est aussi une statistique
+défensive). Aucune doctrine ne domine toutes les autres.
+
 La partie se gagne en détruisant le QG adverse. Au bout de 20 minutes,
 l'équipe au meilleur score (stocks, unités, bâtiments, exploration)
 l'emporte. Une victoire rapporte 100 points d'expérience, une égalité 40,

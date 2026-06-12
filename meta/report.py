@@ -88,32 +88,36 @@ h2.kicker::before {
 /* Charts */
 .chart svg { display: block; width: 100%; height: auto; }
 
-/* Result rows: label, volume proportional stacked bar, count, rate */
-.rows { display: grid; gap: .45rem; }
-.rrow {
-  display: grid; grid-template-columns: 150px 1fr 44px 52px;
-  gap: .8rem; align-items: center; font-size: .85rem;
+/* Matchup matrix */
+.matrix { width: 100%; border-collapse: separate; border-spacing: 4px; }
+.matrix th {
+  color: #79839a; font-size: .7rem; text-transform: uppercase;
+  letter-spacing: 1px; font-weight: 600; padding: .2rem .4rem;
+  text-align: center; border: none;
 }
-.rrow .rname {
-  color: #b9c2d8; text-align: right; white-space: nowrap;
-  overflow: hidden; text-overflow: ellipsis;
+.matrix .mname {
+  color: #b9c2d8; font-size: .84rem; text-align: right;
+  padding: .3rem .6rem; border: none; white-space: nowrap;
 }
-.rrow .rtrack { height: 12px; display: flex; }
-.rrow .rbar {
-  height: 100%; display: flex; border-radius: 6px; overflow: hidden;
-  min-width: 12px;
+.matrix .mc {
+  text-align: center; padding: .42rem .3rem; border-radius: 8px;
+  border: none; min-width: 64px;
 }
-.rbar i { display: block; height: 100%; }
-.rbar .w { background: #56b4e9; }
-.rbar .d { background: #5b6478; }
-.rbar .l { background: repeating-linear-gradient(135deg,#e69f00 0 4px,#b87e0d 4px 8px); }
-.rrow .rn { color: #79839a; text-align: right; font-size: .78rem; }
-.rrow .rpct { text-align: right; font-weight: 700; }
-.cols { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
-@media (max-width: 820px) { .cols { grid-template-columns: 1fr; } }
-.cols .panel { margin-bottom: 0; }
-.cols-after { margin-top: 1rem; }
-.wide-names .rrow { grid-template-columns: 250px 1fr 44px 52px; }
+.matrix .mc b { font-size: .92rem; display: block; }
+.matrix .mc small { color: rgba(227,232,242,.55); font-size: .68rem; }
+.matrix .cw { background: rgba(86,180,233,.18);
+  box-shadow: inset 0 0 0 1px rgba(86,180,233,.35); }
+.matrix .cw b { color: #56b4e9; }
+.matrix .cl {
+  background: repeating-linear-gradient(135deg,
+    rgba(230,159,0,.16) 0 5px, rgba(230,159,0,.06) 5px 10px);
+  box-shadow: inset 0 0 0 1px rgba(230,159,0,.3);
+}
+.matrix .cl b { color: #e8b54a; }
+.matrix .cn { background: #171c28; }
+.matrix .cn b { color: #98a2b8; }
+.matrix .empty-cell { color: #3a4254; background: transparent; }
+.matrix tr.total .mname { color: #e3e8f2; font-weight: 700; }
 
 /* Skill deltas: centered lollipops */
 .lrow {
@@ -321,49 +325,62 @@ def _progress_chart(history: list[dict]) -> str:
 </svg>"""
 
 
-# Result groups: volume proportional stacked rows
+# Matchup matrix: player compositions (rows) against AI profiles (columns)
 
-def _result_rows(
-    history: list[dict], key, label_fn,
-    min_games: int = 1, limit: int = 8,
-) -> str:
-    groups: dict[str, list[dict]] = {}
-    for match in history:
-        groups.setdefault(key(match), []).append(match)
-    if not groups:
-        return _empty()
-    main = {n: m for n, m in groups.items() if len(m) >= min_games}
-    if not main:
-        main = dict(groups)
-    ordered = sorted(main, key=lambda n: -len(main[n]))[:limit]
-    rest = [m for n, ms in groups.items() if n not in ordered for m in ms]
-    biggest = max(
-        [len(main[n]) for n in ordered] + [len(rest)] or [1]
+def _matrix_cell(matches: list[dict]) -> str:
+    if not matches:
+        return '<td class="mc empty-cell">·</td>'
+    wins, _, _ = _counts(matches)
+    rate = 100 * wins / len(matches)
+    cls = "cw" if rate >= 60 else ("cl" if rate <= 40 else "cn")
+    return (
+        f'<td class="mc {cls}"><b class="num">{rate:.0f}%</b>'
+        f'<small class="num">{len(matches)}</small></td>'
     )
-    rows = []
 
-    def row(label: str, matches: list[dict]) -> str:
-        wins, draws, losses = _counts(matches)
-        total = len(matches)
-        share = 100 * total / biggest
-        segs = "".join(
-            f'<i class="{cls}" style="width:{100 * c / total:.1f}%"></i>'
-            for c, cls in ((wins, "w"), (draws, "d"), (losses, "l")) if c
-        )
-        return (
-            f'<div class="rrow"><span class="rname" title="{escape(label)}">'
-            f"{escape(label)}</span>"
-            f'<span class="rtrack"><span class="rbar" '
-            f'style="width:{share:.1f}%">{segs}</span></span>'
-            f'<span class="rn num">{total}</span>'
-            f'<span class="rpct num">{100 * wins / total:.0f}%</span></div>'
-        )
 
-    for name in ordered:
-        rows.append(row(label_fn(name), main[name]))
+def _matchup_matrix(history: list[dict], limit: int = 7) -> str:
+    if not history:
+        return _empty()
+    profiles: dict[str, int] = {}
+    comps: dict[str, list[dict]] = {}
+    for match in history:
+        profiles[match["ai_profile"]] = profiles.get(match["ai_profile"], 0) + 1
+        comps.setdefault(match["composition"], []).append(match)
+    cols = sorted(profiles, key=lambda p: -profiles[p])
+    ordered = sorted(comps, key=lambda c: -len(comps[c]))[:limit]
+    rest = [m for c, ms in comps.items() if c not in ordered for m in ms]
+
+    def cells(matches: list[dict]) -> str:
+        out = []
+        for profile in cols:
+            out.append(
+                _matrix_cell([m for m in matches if m["ai_profile"] == profile])
+            )
+        out.append(_matrix_cell(matches))
+        return "".join(out)
+
+    head = (
+        "<tr><th></th>"
+        + "".join(f"<th>{escape(p)}</th>" for p in cols)
+        + "<th>total</th></tr>"
+    )
+    body = []
+    for comp in ordered:
+        body.append(
+            f'<tr><td class="mname">{escape(_composition_label(comp))}</td>'
+            + cells(comps[comp]) + "</tr>"
+        )
     if rest:
-        rows.append(row(f"autres ({len(rest)})", rest))
-    return '<div class="rows">' + "".join(rows) + "</div>"
+        body.append(
+            f'<tr><td class="mname">autres ({len(rest)})</td>'
+            + cells(rest) + "</tr>"
+        )
+    body.append(
+        '<tr class="total"><td class="mname">toutes</td>'
+        + cells(history) + "</tr>"
+    )
+    return f'<table class="matrix">{head}{"".join(body)}</table>'
 
 
 # Skill deltas: centered lollipops
@@ -478,36 +495,22 @@ def generate_report(
 Point bleu: victoire · gris: égalité · orange: défaite</p>
 {_progress_chart(history)}
 </section>
-<div class="cols">
 <section class="panel">
-<h2 class="kicker" data-n="02">Profils adverses</h2>
-{_result_rows(history, lambda m: m["ai_profile"], str)}
+<h2 class="kicker" data-n="02">Confrontations</h2>
+<p class="legendline">Vos compositions (lignes) contre les profils adverses
+(colonnes). Taux de victoire et nombre de parties. Bleu: favorable ·
+orange hachuré: défavorable · gris: équilibré</p>
+{_matchup_matrix(history)}
 </section>
 <section class="panel">
-<h2 class="kicker" data-n="03">Vos compositions</h2>
-{_result_rows(history, lambda m: m["composition"], _composition_label,
-              min_games=2)}
-</section>
-</div>
-<section class="panel cols-after wide-names">
-<h2 class="kicker" data-n="04">Confrontations</h2>
-<p class="legendline">Votre doctrine face à chaque profil adverse.
-Longueur de barre: nombre de parties · bleu: victoires · orange hachuré:
-défaites · à droite: taux de victoire</p>
-{_result_rows(history,
-              lambda m: m["composition"] + "|" + m["ai_profile"],
-              lambda key: _composition_label(key.partition("|")[0])
-              + " vs " + key.partition("|")[2])}
-</section>
-<section class="panel">
-<h2 class="kicker" data-n="05">Quelles compétences font gagner ?</h2>
+<h2 class="kicker" data-n="03">Quelles compétences font gagner ?</h2>
 <p class="legendline">Écart de points investis en moyenne entre victoires
 et défaites. À droite en bleu: davantage présent dans vos victoires.
 Détail: moyenne dans les victoires vs dans les défaites</p>
 {_skill_deltas(history)}
 </section>
 <section class="panel">
-<h2 class="kicker" data-n="06">Historique</h2>
+<h2 class="kicker" data-n="04">Historique</h2>
 {_history_table(history)}
 </section>
 </div>

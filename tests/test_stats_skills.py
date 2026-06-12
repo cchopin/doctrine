@@ -105,6 +105,42 @@ class TestEndgameSkills(unittest.TestCase):
         self.assertEqual(spec.requires_skill, "science")
 
 
+class TestCounterMechanics(unittest.TestCase):
+    def test_famine_hurts_unfed_soldiers(self):
+        game = make_game()
+        clear_units(game)
+        team = game.teams[0]
+        team.stocks[ResourceType.FOOD] = 0
+        soldiers = [
+            game.spawn_unit(team, UnitType.SOLDIER, (5 + i, 10))
+            for i in range(4)
+        ]
+        hp_before = [s.hp for s in soldiers]
+        game._run_upkeep()
+        self.assertTrue(all(s.hp < h for s, h in zip(soldiers, hp_before)))
+
+    def test_fed_army_pays_upkeep(self):
+        game = make_game()
+        clear_units(game)
+        team = game.teams[0]
+        team.stocks[ResourceType.FOOD] = 100
+        for i in range(4):
+            game.spawn_unit(team, UnitType.SOLDIER, (5 + i, 10))
+        game._run_upkeep()
+        self.assertEqual(team.stocks[ResourceType.FOOD], 98)
+
+    def test_workers_repair_damaged_buildings(self):
+        game = make_game()
+        clear_units(game)
+        team = game.teams[0]
+        hq = game.hq(team)
+        hq.hp = hq.max_hp // 2
+        worker = game.spawn_unit(team, UnitType.WORKER, hq.pos)
+        for _ in range(30):
+            ai.update_unit(game, worker)
+        self.assertGreater(hq.hp, hq.max_hp // 2)
+
+
 class TestBuildingLevelGates(unittest.TestCase):
     def _rich_team(self, game):
         team = game.teams[0]

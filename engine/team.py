@@ -78,19 +78,31 @@ class Team:
 
     @property
     def speed_mult(self) -> float:
+        """Full exploration bonus, scouts only."""
         return 1.0 + 0.10 * self.sk("exploration")
 
     @property
+    def march_mult(self) -> float:
+        """Halved exploration bonus for everyone but scouts, so that
+        exploration does not dominate every other economy skill."""
+        return 1.0 + 0.05 * self.sk("exploration")
+
+    @property
     def transporter_speed_mult(self) -> float:
-        return self.speed_mult * (1.0 + 0.15 * self.sk("logistique"))
+        return self.march_mult * (1.0 + 0.15 * self.sk("logistique"))
 
     @property
     def damage_mult(self) -> float:
-        return 1.0 + 0.18 * self.sk("combat")
+        return 1.0 + 0.10 * self.sk("combat")
 
     @property
     def hp_mult(self) -> float:
-        return 1.0 + 0.15 * self.sk("combat")
+        return 1.0 + 0.06 * self.sk("combat")
+
+    @property
+    def soldier_cost_mult(self) -> float:
+        """Elite soldiers cost more: power demands an economy behind it."""
+        return 1.0 + 0.06 * self.sk("combat")
 
     @property
     def harvest_rate(self) -> float:

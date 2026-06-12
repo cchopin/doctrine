@@ -41,6 +41,17 @@ REPAIR_PERIOD = 10
 REPAIR_RANGE = 6
 ESPIONAGE_PERIOD = 480
 ESPIONAGE_RADIUS = 5
+# Army upkeep: soldiers beyond the free allowance eat food; an empty
+# granary starves them. Economy is the natural counter to pure combat.
+UPKEEP_PERIOD = 80
+FREE_SOLDIERS = 2
+FAMINE_DAMAGE = 6
+# Campaign attrition: soldiers far from any friendly building bleed hp.
+# The logistique skill pushes the supply range further out.
+ATTRITION_PERIOD = 20
+ATTRITION_RANGE = 30
+ATTRITION_RANGE_PER_LOGISTIC = 8
+ATTRITION_DAMAGE = 1
 
 
 @lru_cache(maxsize=32)
@@ -248,6 +259,10 @@ class Game:
             self._run_markets()
         if self.tick_count % REPAIR_PERIOD == 0:
             self._run_repairs()
+        if self.tick_count % UPKEEP_PERIOD == 0:
+            self._run_upkeep()
+        if self.tick_count % ATTRITION_PERIOD == 0:
+            self._run_attrition()
         if self.tick_count % ESPIONAGE_PERIOD == 0:
             self._run_espionage()
         self._remove_depleted_deposits()
@@ -342,6 +357,51 @@ class Game:
                 )
                 if near_base:
                     unit.hp = min(unit.max_hp, unit.hp + rate)
+
+    def _run_upkeep(self) -> None:
+        for team in self.teams.values():
+            if not team.alive:
+                continue
+            soldiers = [
+                u for u in self.units.values()
+                if u.team_id == team.tid and u.utype is UnitType.SOLDIER
+            ]
+            cost = max(0, len(soldiers) - FREE_SOLDIERS)
+            if cost <= 0:
+                continue
+            food = team.stocks.get(ResourceType.FOOD, 0)
+            if food >= cost:
+                team.stocks[ResourceType.FOOD] = food - cost
+                continue
+            team.stocks[ResourceType.FOOD] = 0
+            for soldier in soldiers:
+                soldier.hp -= FAMINE_DAMAGE
+            self.add_event(
+                f"Famine: les soldats ont faim ({team.name})"
+            )
+
+    def _run_attrition(self) -> None:
+        for team in self.teams.values():
+            if not team.alive:
+                continue
+            supply_range = (
+                ATTRITION_RANGE
+                + ATTRITION_RANGE_PER_LOGISTIC * team.sk("logistique")
+            )
+            anchors = [
+                b.pos for b in self.buildings_of(team.tid, only_complete=True)
+            ]
+            if not anchors:
+                continue
+            for unit in self.units.values():
+                if unit.team_id != team.tid or unit.utype is not UnitType.SOLDIER:
+                    continue
+                supplied = any(
+                    abs(unit.x - x) + abs(unit.y - y) <= supply_range
+                    for x, y in anchors
+                )
+                if not supplied:
+                    unit.hp -= ATTRITION_DAMAGE
 
     def _run_espionage(self) -> None:
         for team in self.teams.values():
