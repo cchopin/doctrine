@@ -14,7 +14,12 @@ def compute_damage(attacker: Unit, damage_mult: float) -> int:
     return max(1, round(attacker.spec.damage * damage_mult))
 
 
-def attack(attacker: Unit, target: Unit | Building, damage_mult: float) -> int:
+def attack(
+    attacker: Unit,
+    target: Unit | Building,
+    damage_mult: float,
+    period: int = ATTACK_PERIOD,
+) -> int:
     """Apply one attack, return the damage dealt.
 
     The caller is responsible for range checks, cooldowns and removing
@@ -22,5 +27,6 @@ def attack(attacker: Unit, target: Unit | Building, damage_mult: float) -> int:
     """
     dmg = compute_damage(attacker, damage_mult)
     target.hp -= dmg
-    attacker.attack_cooldown = ATTACK_PERIOD
+    target.last_hit_team = attacker.team_id
+    attacker.attack_cooldown = period
     return dmg

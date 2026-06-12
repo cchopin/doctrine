@@ -80,6 +80,7 @@ class Unit:
     target_unit_id: int | None = None
     target_building_id: int | None = None
     flee_until: int = 0
+    last_hit_team: int | None = None
 
     @property
     def pos(self) -> tuple[int, int]:
@@ -163,6 +164,7 @@ class Building:
     training: UnitType | None = None
     training_left: float = 0.0
     attack_cooldown: int = 0
+    last_hit_team: int | None = None
 
     @property
     def pos(self) -> tuple[int, int]:

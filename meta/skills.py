@@ -88,6 +88,46 @@ SKILLS: dict[str, SkillDef] = {
         min_level=5,
         max_points=3,
     ),
+    "fortification": SkillDef(
+        key="fortification",
+        label="Fortification",
+        description="Points de vie des bâtiments augmentés.",
+        kind="advanced",
+        min_level=6,
+        max_points=5,
+    ),
+    "cartographie": SkillDef(
+        key="cartographie",
+        label="Cartographie",
+        description="Rayon de vision de toutes les unités augmenté.",
+        kind="advanced",
+        min_level=7,
+        max_points=3,
+    ),
+    "conscription": SkillDef(
+        key="conscription",
+        label="Conscription",
+        description="Les soldats sont formés plus vite.",
+        kind="advanced",
+        min_level=8,
+        max_points=5,
+    ),
+    "pillage": SkillDef(
+        key="pillage",
+        label="Pillage",
+        description="Chaque ennemi éliminé rapporte des ressources.",
+        kind="advanced",
+        min_level=9,
+        max_points=5,
+    ),
+    "frenesie": SkillDef(
+        key="frenesie",
+        label="Frénésie",
+        description="Cadence d'attaque des soldats augmentée.",
+        kind="advanced",
+        min_level=10,
+        max_points=5,
+    ),
 }
 
 

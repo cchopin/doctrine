@@ -90,6 +90,7 @@ class Game:
             self.teams[tid] = team
             bx, by = base_positions[tid]
             hq_spec = BUILDING_SPECS[BuildingType.HQ]
+            hq_hp = round(hq_spec.hp * team.building_hp_mult)
             hq_id = self._new_id()
             self.buildings[hq_id] = Building(
                 bid=hq_id,
@@ -97,8 +98,8 @@ class Game:
                 btype=BuildingType.HQ,
                 x=bx,
                 y=by,
-                hp=hq_spec.hp,
-                max_hp=hq_spec.hp,
+                hp=hq_hp,
+                max_hp=hq_hp,
                 complete=True,
             )
             for utype in STARTING_UNITS:
@@ -184,14 +185,15 @@ class Game:
         self, team: Team, btype: BuildingType, pos: tuple[int, int]
     ) -> Building:
         spec = BUILDING_SPECS[btype]
+        max_hp = round(spec.hp * team.building_hp_mult)
         building = Building(
             bid=self._new_id(),
             team_id=team.tid,
             btype=btype,
             x=pos[0],
             y=pos[1],
-            hp=max(1, spec.hp // 5),
-            max_hp=spec.hp,
+            hp=max(1, max_hp // 5),
+            max_hp=max_hp,
             complete=False,
         )
         self.buildings[building.bid] = building
@@ -264,6 +266,7 @@ class Game:
                 building.training = None
                 unit = self.spawn_unit(team, utype, building.pos)
                 if unit is not None:
+                    team.stats.units_trained += 1
                     self.add_event(
                         f"Unité prête: {unit.spec.label_fr} ({team.name})"
                     )
@@ -285,6 +288,8 @@ class Game:
                 target, best = unit, dist
         if target is not None:
             target.hp -= damage
+            target.last_hit_team = building.team_id
+            self.teams[building.team_id].stats.damage_dealt += damage
             building.attack_cooldown = period
             ai.on_damaged(self, target)
 
@@ -369,15 +374,29 @@ class Game:
         for uid in [u.uid for u in self.units.values() if u.hp <= 0]:
             unit = self.units.pop(uid)
             team = self.teams[unit.team_id]
+            team.stats.units_lost += 1
             self.add_event(
                 f"Unité perdue: {unit.spec.label_fr} ({team.name})"
             )
+            if unit.last_hit_team is not None:
+                killer = self.teams[unit.last_hit_team]
+                killer.stats.units_killed += 1
+                loot = killer.loot_food_per_kill
+                if loot > 0:
+                    killer.add_stock(ResourceType.FOOD, loot)
         for bid in [b.bid for b in self.buildings.values() if b.hp <= 0]:
             building = self.buildings.pop(bid)
             team = self.teams[building.team_id]
             self.add_event(
                 f"Bâtiment détruit: {building.spec.label_fr} ({team.name})"
             )
+            if building.last_hit_team is not None:
+                killer = self.teams[building.last_hit_team]
+                killer.stats.buildings_destroyed += 1
+                loot = killer.loot_per_building
+                if loot > 0:
+                    killer.add_stock(ResourceType.WOOD, loot // 2)
+                    killer.add_stock(ResourceType.ORE, loot - loot // 2)
             if building.btype is BuildingType.HQ:
                 team.alive = False
                 self.add_event(f"Le QG de l'équipe {team.name} est détruit !")
@@ -422,13 +441,14 @@ class Game:
 
     def _update_visibility(self, team: Team) -> None:
         visible: set[tuple[int, int]] = set()
+        bonus = team.sight_bonus
         sources: list[tuple[int, int, int]] = [
-            (u.x, u.y, u.spec.sight)
+            (u.x, u.y, u.spec.sight + bonus)
             for u in self.units.values()
             if u.team_id == team.tid
         ]
         sources.extend(
-            (b.x, b.y, b.spec.sight)
+            (b.x, b.y, b.spec.sight + bonus)
             for b in self.buildings.values()
             if b.team_id == team.tid and b.complete
         )

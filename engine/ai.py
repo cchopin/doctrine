@@ -183,6 +183,7 @@ def _work_on_site(game, unit: Unit, team: Team, site: Building, speed: float) ->
             site.complete = True
             site.hp = site.max_hp
             unit.target_building_id = None
+            team.stats.buildings_built += 1
             game.add_event(
                 f"Bâtiment terminé: {site.spec.label_fr} ({team.name})"
             )
@@ -252,6 +253,7 @@ def _deliver(game, unit: Unit, team: Team, speed: float) -> None:
     if _near(unit, depot.pos, 1):
         for rtype, amount in unit.cargo.items():
             team.add_stock(rtype, amount)
+            team.stats.collected[rtype] += amount
         unit.cargo.clear()
         unit.clear_task()
         return
@@ -306,16 +308,30 @@ ATTACK_SQUAD_SIZE = 4
 DEFENSE_RADIUS = 8
 
 
+def _squad_size(team: Team) -> int:
+    """Soldiers required before attacking, larger at high skill budgets."""
+    return ATTACK_SQUAD_SIZE + sum(team.skills.values()) // 15
+
+
 def _update_soldier(game, unit: Unit, team: Team) -> None:
     speed = unit.spec.speed * team.speed_mult
     soldiers = game.unit_counts(team).get(UnitType.SOLDIER, 0)
-    attack_mode = soldiers >= ATTACK_SQUAD_SIZE
+    required = _squad_size(team)
+    if team.attacking:
+        if soldiers < max(2, required // 2):
+            team.attacking = False
+    elif soldiers >= required:
+        team.attacking = True
+    attack_mode = team.attacking
     target = _nearest_visible_enemy(game, unit, team)
     if target is not None:
         unit.state = UnitState.FIGHT
         if combat.in_melee_range(unit.x, unit.y, target.x, target.y):
             if unit.attack_cooldown == 0:
-                combat.attack(unit, target, team.damage_mult)
+                dmg = combat.attack(
+                    unit, target, team.damage_mult, team.attack_period
+                )
+                team.stats.damage_dealt += dmg
                 on_damaged(game, target)
             return
         _chase(game, unit, target.pos, speed)
@@ -328,7 +344,10 @@ def _update_soldier(game, unit: Unit, team: Team) -> None:
         unit.state = UnitState.FIGHT
         if combat.in_melee_range(unit.x, unit.y, building.x, building.y):
             if unit.attack_cooldown == 0:
-                combat.attack(unit, building, team.damage_mult)
+                dmg = combat.attack(
+                    unit, building, team.damage_mult, team.attack_period
+                )
+                team.stats.damage_dealt += dmg
             return
         _chase(game, unit, building.pos, speed)
         return
@@ -407,7 +426,10 @@ def _desired_units(game, team: Team) -> dict[UnitType, int]:
         UnitType.WORKER: min(8, 4 + team.sk("recolte") // 2),
         UnitType.TRANSPORTER: min(5, 1 + workers // 3 + team.sk("transport") // 3),
         UnitType.SCOUT: min(3, 1 + team.sk("exploration") // 4),
-        UnitType.SOLDIER: min(12, 2 + team.sk("combat")),
+        # Always enough to eventually form an attack squad.
+        UnitType.SOLDIER: min(
+            12, max(_squad_size(team) + 1, 2 + team.sk("combat"))
+        ),
     }
 
 
@@ -446,8 +468,10 @@ def _plan_training(game, team: Team) -> None:
         team.pay(spec.cost)
         trainer.training = utype
         work = spec.train_work
-        if utype is UnitType.SOLDIER and trainer.btype is BuildingType.HQ:
-            work *= HQ_SOLDIER_WORK_PENALTY
+        if utype is UnitType.SOLDIER:
+            work *= team.soldier_train_mult
+            if trainer.btype is BuildingType.HQ:
+                work *= HQ_SOLDIER_WORK_PENALTY
         trainer.training_left = work
         trainers.remove(trainer)
         if not trainers:
@@ -518,17 +542,20 @@ AI_PROFILES: dict[str, dict[str, int]] = {
     "guerrier": {
         "combat": 5, "exploration": 2, "recolte": 2, "transport": 1,
         "construction": 1, "tradeur": 0, "science": 2, "mecanique": 1,
-        "logistique": 0, "espionnage": 1,
+        "logistique": 0, "espionnage": 1, "fortification": 1,
+        "cartographie": 0, "conscription": 2, "pillage": 2, "frenesie": 2,
     },
     "economiste": {
         "combat": 1, "exploration": 1, "recolte": 4, "transport": 3,
         "construction": 2, "tradeur": 2, "science": 1, "mecanique": 1,
-        "logistique": 2, "espionnage": 0,
+        "logistique": 2, "espionnage": 0, "fortification": 2,
+        "cartographie": 1, "conscription": 0, "pillage": 0, "frenesie": 0,
     },
     "explorateur": {
         "combat": 2, "exploration": 4, "recolte": 2, "transport": 2,
         "construction": 1, "tradeur": 0, "science": 1, "mecanique": 0,
-        "logistique": 1, "espionnage": 2,
+        "logistique": 1, "espionnage": 2, "fortification": 0,
+        "cartographie": 2, "conscription": 1, "pillage": 1, "frenesie": 1,
     },
     "equilibre": {key: 1 for key in SKILLS},
 }
