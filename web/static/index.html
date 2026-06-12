@@ -52,6 +52,30 @@
   <div class="game-grid">
     <div class="map-wrap panel">
       <canvas id="map" width="960" height="640"></canvas>
+      <div class="legend">
+        <div class="lg-col">
+          <h4>Unités</h4>
+          <span><b>s</b> éclaireur</span>
+          <span><b>w</b> ouvrier</span>
+          <span><b>t</b> transporteur</span>
+          <span><b>S</b> soldat</span>
+        </div>
+        <div class="lg-col">
+          <h4>Bâtiments</h4>
+          <span><b>B</b> QG</span>
+          <span><b>E</b> entrepôt</span>
+          <span><b>C</b> caserne</span>
+          <span><b>M</b> marché</span>
+          <span><b>Y</b> tour de garde</span>
+        </div>
+        <div class="lg-col">
+          <h4>Ressources</h4>
+          <span><b class="r-ore">^</b> minerai</span>
+          <span><b class="r-wood">T</b> bois</span>
+          <span><b class="r-crystal">*</b> cristal</span>
+          <span><b class="r-food">%</b> nourriture</span>
+        </div>
+      </div>
     </div>
     <aside class="hud">
       <div class="panel hud-block">
@@ -112,28 +136,39 @@
       débloque compétences et bâtiments.</p>
 
       <h3>Unités</h3>
-      <p><b>s</b> éclaireur : lève le brouillard de guerre ·
-      <b>w</b> ouvrier : récolte et construit ·
-      <b>t</b> transporteur : ramène les récoltes ·
-      <b>S</b> soldat : défend la base puis attaque en escouade.</p>
+      <ul class="glossary">
+        <li><b>s</b> éclaireur : lève le brouillard de guerre</li>
+        <li><b>w</b> ouvrier : récolte et construit</li>
+        <li><b>t</b> transporteur : ramène les récoltes à la base</li>
+        <li><b>S</b> soldat : défend la base puis attaque en escouade</li>
+      </ul>
 
       <h3>Bâtiments</h3>
-      <p><b>B</b> QG (riposte aux assauts) ·
-      <b>E</b> entrepôt (niv. 2) : dépôt avancé ·
-      <b>C</b> caserne (niv. 3) : forme les soldats plus vite ·
-      <b>M</b> marché (niv. 5) : vend le surplus ·
-      <b>Y</b> tour de garde (science) : tire sur les ennemis.</p>
+      <ul class="glossary">
+        <li><b>B</b> QG : forme les unités, riposte aux assauts</li>
+        <li><b>E</b> entrepôt (niv. 2) : dépôt avancé</li>
+        <li><b>C</b> caserne (niv. 3) : forme les soldats plus vite</li>
+        <li><b>M</b> marché (niv. 5) : vend le surplus de ressources</li>
+        <li><b>Y</b> tour de garde (science) : tire sur les ennemis</li>
+      </ul>
 
       <h3>Ressources</h3>
-      <p><b>%</b> nourriture (forme les unités) · <b>T</b> bois ·
-      <b>^</b> minerai · <b>*</b> cristal. Les ouvriers empilent leur
-      récolte sur le gisement, les transporteurs font la navette.</p>
+      <ul class="glossary">
+        <li><b>%</b> nourriture : forme les unités</li>
+        <li><b>T</b> bois · <b>^</b> minerai · <b>*</b> cristal :
+          bâtiments et soldats</li>
+      </ul>
+      <p>Les ouvriers empilent leur récolte sur le gisement, les
+      transporteurs font la navette vers la base.</p>
 
       <h3>Compétences</h3>
-      <p>Exploration (vitesse), Combat (dégâts et PV), Récolte,
-      Transport, Construction, Tradeur, puis au fil des niveaux :
-      Science, Mécanique, Logistique, Espionnage, Fortification,
-      Cartographie, Conscription, Pillage, Frénésie.</p>
+      <ul class="glossary">
+        <li>De base : Exploration (vitesse), Combat (dégâts et PV),
+          Récolte, Transport, Construction, Tradeur</li>
+        <li>Au fil des niveaux : Science, Mécanique, Logistique,
+          Espionnage, Fortification, Cartographie, Conscription,
+          Pillage, Frénésie</li>
+      </ul>
 
       <h3>Mode idle</h3>
       <p>Activé, les parties s'enchaînent automatiquement avec votre

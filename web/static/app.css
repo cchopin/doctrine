@@ -109,7 +109,8 @@ h2 { margin: 0 0 .3rem; font-size: 1.25rem; }
 }
 .skill-desc { grid-column: 1; color: var(--muted); font-size: .78rem; }
 .skill-ctl {
-  grid-row: 1 / span 2; display: flex; align-items: center; gap: .55rem;
+  grid-column: 2; grid-row: 1 / span 2;
+  display: flex; align-items: center; gap: .55rem;
 }
 .skill-ctl button {
   width: 30px; height: 30px; border-radius: 9px; background: #10151f;
@@ -151,7 +152,24 @@ h2 { margin: 0 0 .3rem; font-size: 1.25rem; }
   display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: .9rem;
 }
 @media (max-width: 980px) { .game-grid { grid-template-columns: 1fr; } }
-.map-wrap { padding: .6rem; display: flex; }
+.map-wrap {
+  padding: .6rem; display: flex; flex-direction: column; gap: .55rem;
+}
+.legend {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: .4rem .8rem;
+  padding: .1rem .4rem .25rem; font-size: .78rem; color: var(--muted);
+}
+.lg-col { display: flex; flex-wrap: wrap; gap: .15rem .9rem;
+  align-content: flex-start; }
+.lg-col h4 {
+  width: 100%; margin: 0; font-size: .68rem; text-transform: uppercase;
+  letter-spacing: .5px; color: #677085;
+}
+.lg-col b { color: var(--text); margin-right: .25rem; }
+.lg-col .r-ore { color: #e3c34c; }
+.lg-col .r-wood { color: #5dbb63; }
+.lg-col .r-crystal { color: #d678c2; }
+.lg-col .r-food { color: #e8743b; }
 #map {
   width: 100%; height: auto; border-radius: 10px;
   image-rendering: pixelated; background: #07090d;
@@ -227,3 +245,12 @@ h2 { margin: 0 0 .3rem; font-size: 1.25rem; }
 .rules-body h3 { color: var(--accent); font-size: .95rem;
   margin: 1.1rem 0 .25rem; }
 .rules-body p { margin: .25rem 0; color: #c4ccdd; font-size: .88rem; }
+.glossary { list-style: none; margin: .2rem 0; padding: 0; }
+.glossary li {
+  color: #c4ccdd; font-size: .88rem; padding: .14rem 0 .14rem 1.4rem;
+  position: relative;
+}
+.glossary li > b:first-child {
+  position: absolute; left: 0; top: .14rem; width: 1.1rem;
+  text-align: center; color: var(--accent);
+}
