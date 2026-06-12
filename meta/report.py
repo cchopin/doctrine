@@ -89,35 +89,42 @@ h2.kicker::before {
 .chart svg { display: block; width: 100%; height: auto; }
 
 /* Matchup matrix */
-.matrix { width: 100%; border-collapse: separate; border-spacing: 4px; }
-.matrix th {
-  color: #79839a; font-size: .7rem; text-transform: uppercase;
-  letter-spacing: 1px; font-weight: 600; padding: .2rem .4rem;
-  text-align: center; border: none;
+.matrix {
+  width: 100%; border-collapse: separate; border-spacing: 3px;
+  table-layout: fixed;
 }
+.matrix th {
+  color: #79839a; font-size: .66rem; text-transform: uppercase;
+  letter-spacing: 1px; font-weight: 600; padding: .2rem .3rem;
+  text-align: center; border: none; overflow: hidden;
+  text-overflow: ellipsis;
+}
+.matrix th:first-child { width: 21%; }
 .matrix .mname {
-  color: #b9c2d8; font-size: .84rem; text-align: right;
-  padding: .3rem .6rem; border: none; white-space: nowrap;
+  color: #b9c2d8; font-size: .82rem; text-align: right;
+  padding: .3rem .55rem; border: none; white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis;
 }
 .matrix .mc {
-  text-align: center; padding: .42rem .3rem; border-radius: 8px;
-  border: none; min-width: 64px;
+  text-align: center; height: 46px; padding: 0; border-radius: 6px;
+  border: none; vertical-align: middle; line-height: 1.25;
 }
-.matrix .mc b { font-size: .92rem; display: block; }
-.matrix .mc small { color: rgba(227,232,242,.55); font-size: .68rem; }
-.matrix .cw { background: rgba(86,180,233,.18);
-  box-shadow: inset 0 0 0 1px rgba(86,180,233,.35); }
+.matrix .mc b { font-size: .88rem; display: block; }
+.matrix .mc small { color: rgba(227,232,242,.5); font-size: .66rem; }
+.matrix .cw { background: rgba(86,180,233,.16); }
 .matrix .cw b { color: #56b4e9; }
 .matrix .cl {
   background: repeating-linear-gradient(135deg,
-    rgba(230,159,0,.16) 0 5px, rgba(230,159,0,.06) 5px 10px);
-  box-shadow: inset 0 0 0 1px rgba(230,159,0,.3);
+    rgba(230,159,0,.13) 0 6px, rgba(230,159,0,.05) 6px 12px);
 }
 .matrix .cl b { color: #e8b54a; }
-.matrix .cn { background: #171c28; }
+.matrix .cn { background: #161b26; }
 .matrix .cn b { color: #98a2b8; }
-.matrix .empty-cell { color: #3a4254; background: transparent; }
+.matrix .empty-cell {
+  color: #333b4d; background: #10141d; font-size: .8rem;
+}
 .matrix tr.total .mname { color: #e3e8f2; font-weight: 700; }
+.matrix tr.total .mc { box-shadow: inset 0 1px 0 #232b3a; }
 
 /* Skill deltas: centered lollipops */
 .lrow {

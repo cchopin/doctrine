@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Doctrine · Règles complètes</title>
+<style>
+:root { color-scheme: dark; }
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: #0c0f15; color: #e3e8f2;
+  font: 15px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+.layout { display: grid; grid-template-columns: 230px 1fr; min-height: 100vh; }
+nav {
+  border-right: 1px solid #1d2433; padding: 2rem 1.2rem;
+  position: sticky; top: 0; height: 100vh; overflow-y: auto;
+}
+nav .brand { font-weight: 800; letter-spacing: 2px; margin-bottom: .2rem; }
+nav .vtag { color: #5d6679; font-size: .72rem; margin-bottom: 1.2rem; }
+nav a {
+  display: block; color: #98a2b8; text-decoration: none;
+  padding: .28rem .5rem; border-radius: 7px; font-size: .85rem;
+}
+nav a:hover { color: #56b4e9; background: rgba(86,180,233,.06); }
+main { padding: 2.5rem 3rem 5rem; max-width: 860px; }
+h1 { margin: 0 0 .3rem; font-size: 1.7rem; }
+.sub { color: #79839a; margin: 0 0 2rem; }
+h2 {
+  margin: 2.6rem 0 .7rem; font-size: 1.15rem; color: #aebdf0;
+  padding-top: 1rem; border-top: 1px solid #1d2433;
+}
+h2:first-of-type { border-top: none; padding-top: 0; }
+p, li { color: #c4ccdd; font-size: .92rem; }
+code {
+  background: #161b26; border: 1px solid #232b3a; border-radius: 5px;
+  padding: .05rem .35rem; font-size: .84rem; color: #8fd0ff;
+}
+table { border-collapse: collapse; width: 100%; margin: .7rem 0 1rem; }
+th, td { padding: .4rem .6rem; text-align: left; font-size: .85rem; }
+th {
+  color: #5d6679; font-weight: 600; font-size: .68rem;
+  text-transform: uppercase; letter-spacing: 1px;
+  border-bottom: 1px solid #1d2433;
+}
+td { border-bottom: 1px solid #151a25; color: #c4ccdd; }
+td.sym { color: #56b4e9; font-weight: 700; font-family: monospace; }
+.formula {
+  background: #11151e; border: 1px solid #1d2433; border-radius: 10px;
+  padding: .7rem 1rem; margin: .6rem 0; font-size: .88rem; color: #c4ccdd;
+}
+.back { color: #56b4e9; text-decoration: none; font-size: .85rem; }
+</style>
+</head>
+<body>
+<div class="layout">
+<nav>
+<div class="brand">DOCTRINE</div>
+<div class="vtag">référence des règles</div>
+<a href="#principe">Principe</a><a href="#simulation">Simulation</a><a href="#unites">Unités</a><a href="#batiments">Bâtiments</a><a href="#economie">Économie</a><a href="#competences">Compétences</a><a href="#combat">Combat</a><a href="#contres">Contres</a><a href="#progression">Progression</a><a href="#score">Score</a>
+</nav>
+<main>
+<h1>Règles complètes</h1>
+<p class="sub">Toutes les formules et constantes, extraites du moteur de
+jeu. n désigne le nombre de points investis dans une compétence.</p>
+
+<h2 id="principe">Principe</h2>
+<p>Doctrine est un auto-battler stratégique inspiré des 4X. Avant la
+partie, le joueur répartit un budget de points entre ses compétences
+(sa doctrine), puis les deux armées jouent seules: exploration, récolte,
+construction, combat. L'adversaire tire un profil au hasard parmi
+guerrier, économiste, explorateur et équilibré.</p>
+
+<h2 id="simulation">Simulation</h2>
+<p>La simulation avance par ticks: <code>8 ticks
+par seconde</code>. Une partie est limitée à 20 minutes
+(9600 ticks). La carte fait 120×80 cases,
+générée procéduralement (graine rejouable). Coût de déplacement par
+terrain: plain: 1.0 · forest: 1.6 · mountain: 2.6 · water: infranchissable. Le brouillard de guerre est par équipe: seules
+les zones explorées sont connues, seules les zones en vue sont à jour.</p>
+
+<h2 id="unites">Unités</h2>
+<table><tr><th></th><th>Unité</th><th>PV</th><th>Dégâts</th><th>Vitesse (cases/tick)</th><th>Capacité</th><th>Vision</th><th>Coût</th><th>Formation (ticks)</th></tr><tr><td class="sym">s</td><td>éclaireur</td><td>30</td><td>2</td><td>0.45</td><td>·</td><td>8</td><td>20 nourriture</td><td>50</td></tr><tr><td class="sym">w</td><td>ouvrier</td><td>40</td><td>3</td><td>0.28</td><td>10</td><td>5</td><td>30 nourriture</td><td>60</td></tr><tr><td class="sym">t</td><td>transporteur</td><td>35</td><td>1</td><td>0.34</td><td>28</td><td>5</td><td>25 nourriture, 10 bois</td><td>70</td></tr><tr><td class="sym">S</td><td>soldat</td><td>80</td><td>8</td><td>0.30</td><td>·</td><td>6</td><td>25 nourriture, 25 minerai</td><td>90</td></tr></table>
+<p>La vitesse finale est <code>vitesse de base × multiplicateur de
+marche</code>. Les capacités sont multipliées par le bonus de transport.
+Les soldats formés au QG (sans caserne) subissent ×1.5 sur le temps de
+formation.</p>
+
+<h2 id="batiments">Bâtiments</h2>
+<table><tr><th></th><th>Bâtiment</th><th>PV</th><th>Vision</th><th>Coût</th><th>Travail</th><th>Prérequis</th><th>Riposte</th></tr><tr><td class="sym">B</td><td>QG</td><td>500</td><td>7</td><td>gratuit</td><td>·</td><td>·</td><td>portée 3, 6 dégâts / 5 ticks</td></tr><tr><td class="sym">E</td><td>entrepôt</td><td>150</td><td>4</td><td>60 bois</td><td>50</td><td>niveau 2</td><td>·</td></tr><tr><td class="sym">C</td><td>caserne</td><td>200</td><td>4</td><td>40 bois, 40 minerai</td><td>70</td><td>niveau 3</td><td>·</td></tr><tr><td class="sym">M</td><td>marché</td><td>150</td><td>4</td><td>50 bois, 20 cristal</td><td>60</td><td>niveau 5</td><td>·</td></tr><tr><td class="sym">Y</td><td>tour de garde</td><td>180</td><td>10</td><td>50 minerai, 15 cristal</td><td>60</td><td>niveau 2, compétence science</td><td>portée 3, 5 dégâts / 6 ticks</td></tr></table>
+<p>Un chantier démarre à 20% des PV finaux et au plus
+2 ouvriers y travaillent. Les bâtiments endommagés
+sous 80% de leurs PV sont réparés par les ouvriers à
+<code>3.0 PV × travail de construction</code> par tick.</p>
+
+<h2 id="economie">Économie</h2>
+<div class="formula">Extraction = 0.7 × (1 + 0.20 × récolte) par ouvrier
+et par tick, empilée sur le gisement.</div>
+<div class="formula">Ramassage = 2.5 × (1 + 0.20 × transport) par tick.
+Capacité = base × (1 + 0.12 × transport).</div>
+<p>Les ouvriers empilent leur récolte sur place, les transporteurs font
+la navette vers le dépôt le plus proche (QG ou entrepôt). Sans
+transporteur vivant, les ouvriers portent eux-mêmes. Le marché vend
+toutes les 40 ticks jusqu'à 20
+unités du stock le plus haut (hors nourriture) au-dessus d'un plancher de
+80, au taux <code>0.4 + 0.15 × tradeur</code>.</p>
+
+<h2 id="competences">Compétences</h2>
+<table><tr><th>Compétence</th><th>Déblocage</th><th>Max</th><th>Effet (n = points investis)</th></tr><tr><td>Exploration</td><td>base</td><td>10</td><td>Vitesse: éclaireurs ×(1 + 0.10·n), autres unités ×(1 + 0.05·n)</td></tr><tr><td>Combat</td><td>base</td><td>10</td><td>Dégâts ×(1 + 0.10·n), PV ×(1 + 0.06·n), coût des soldats ×(1 + 0.06·n)</td></tr><tr><td>Récolte</td><td>base</td><td>10</td><td>Extraction ×(1 + 0.20·n)</td></tr><tr><td>Transport</td><td>base</td><td>10</td><td>Ramassage ×(1 + 0.20·n), capacité ×(1 + 0.12·n)</td></tr><tr><td>Construction</td><td>base</td><td>10</td><td>Travail de construction et de réparation ×(1 + 0.25·n)</td></tr><tr><td>Tradeur</td><td>base</td><td>10</td><td>Taux de revente = 0.4 + 0.15·n nourriture par unité vendue</td></tr><tr><td>Science</td><td>niveau 2</td><td>3</td><td>Débloque la tour de garde</td></tr><tr><td>Mécanique</td><td>niveau 4</td><td>5</td><td>+n PV toutes les 10 ticks près d&#x27;un bâtiment allié (rayon 6)</td></tr><tr><td>Logistique</td><td>niveau 6</td><td>5</td><td>Transporteurs ×(1 + 0.15·n), portée de ravitaillement +8·n cases</td></tr><tr><td>Espionnage</td><td>niveau 8</td><td>3</td><td>Toutes les 60 s, révèle un rayon de 5 autour d&#x27;un bâtiment ennemi</td></tr><tr><td>Fortification</td><td>niveau 10</td><td>5</td><td>PV des bâtiments ×(1 + 0.20·n)</td></tr><tr><td>Cartographie</td><td>niveau 12</td><td>3</td><td>Rayon de vision de toutes les unités +n</td></tr><tr><td>Conscription</td><td>niveau 13</td><td>5</td><td>Temps de formation des soldats ÷(1 + 0.15·n)</td></tr><tr><td>Pillage</td><td>niveau 14</td><td>5</td><td>+8·n nourriture par unité éliminée, +25·n ressources par bâtiment détruit</td></tr><tr><td>Frénésie</td><td>niveau 16</td><td>5</td><td>Période d&#x27;attaque ÷(1 + 0.12·n), plancher 2 ticks</td></tr></table>
+
+<h2 id="combat">Combat</h2>
+<div class="formula">Dégâts par coup = arrondi(dégâts de base ×
+(1 + 0.10 × combat)), une attaque toutes les
+6 ticks (réduit par frénésie), au contact
+(distance de Tchebychev ≤ 1).</div>
+<div class="formula">PV au recrutement = arrondi(PV de base ×
+(1 + 0.06 × combat)).</div>
+<ul>
+<li>Les soldats défendent leur base tant que l'escouade n'atteint pas
+<code>4 + points totaux ÷ 15</code> têtes, puis passent
+à l'offensive. Ils battent en retraite sous la moitié de ce seuil.</li>
+<li>Alarme: un intrus à moins de 14 cases du QG rappelle tous
+les soldats.</li>
+<li>Avantage du terrain: ×1.25 sur les dégâts à moins de
+15 cases de son QG (unités seulement).</li>
+<li>Les civils touchés fuient vers le QG pendant 60 ticks.</li>
+</ul>
+
+<h2 id="contres">Contres et équilibrage</h2>
+<ul>
+<li><b>Entretien</b>: au-delà de 2 soldats, chaque
+soldat consomme 1 nourriture toutes les 80 ticks.
+Grenier vide: tous les soldats perdent 6 PV
+(famine).</li>
+<li><b>Attrition</b>: un soldat à plus de 30
+cases (Manhattan) de tout bâtiment allié perd
+1 PV toutes les 20
+ticks. La logistique étend cette portée de
+8 cases par point.</li>
+<li><b>Coût de l'élite</b>: le coût des soldats est multiplié par
+<code>1 + 0.06 × combat</code>.</li>
+<li><b>Défense</b>: riposte du QG et des tours (voir bâtiments),
+réparation par les ouvriers, avantage du terrain.</li>
+</ul>
+
+<h2 id="progression">Progression</h2>
+<p>Victoire: +100 xp · égalité: +40 xp · défaite:
++15 xp. La répartition des points est remise à zéro à chaque
+partie, seuls le niveau et l'expérience persistent.</p>
+<table><tr><th>Niveau</th><th>Points</th><th>XP vers le suivant</th><th>Déblocages</th></tr><tr><td>1</td><td>10</td><td>200</td><td>Exploration, Combat, Récolte, Transport, Construction, Tradeur</td></tr><tr><td>2</td><td>12</td><td>400</td><td>Science, entrepôt, tour de garde</td></tr><tr><td>3</td><td>14</td><td>600</td><td>caserne</td></tr><tr><td>4</td><td>16</td><td>800</td><td>Mécanique</td></tr><tr><td>5</td><td>18</td><td>1000</td><td>marché</td></tr><tr><td>6</td><td>20</td><td>1200</td><td>Logistique</td></tr><tr><td>7</td><td>22</td><td>1400</td><td>·</td></tr><tr><td>8</td><td>24</td><td>1600</td><td>Espionnage</td></tr><tr><td>9</td><td>26</td><td>1800</td><td>·</td></tr><tr><td>10</td><td>28</td><td>2000</td><td>Fortification</td></tr><tr><td>11</td><td>30</td><td>2200</td><td>·</td></tr><tr><td>12</td><td>32</td><td>2400</td><td>Cartographie</td></tr><tr><td>13</td><td>34</td><td>2600</td><td>Conscription</td></tr><tr><td>14</td><td>36</td><td>2800</td><td>Pillage</td></tr><tr><td>15</td><td>38</td><td>3000</td><td>·</td></tr><tr><td>16</td><td>40</td><td>3200</td><td>Frénésie</td></tr></table>
+
+<h2 id="score">Score et fin de partie</h2>
+<div class="formula">Score = somme des stocks + 5 × unités + 20 ×
+bâtiments terminés + cases explorées ÷ 50.</div>
+<p>La partie se termine par destruction d'un QG, ou au temps limite où
+le meilleur score l'emporte (égalité possible).</p>
+
+</main>
+</div>
+</body>
+</html>

@@ -30,6 +30,7 @@ from meta.progress import (
     xp_needed,
 )
 from meta.report import generate_report
+from meta.rulesdoc import generate_rules
 from meta.skills import SKILLS, unlocked_skills
 
 STATIC_DIR = Path(__file__).resolve().parent / "static"
@@ -436,6 +437,9 @@ class Handler(BaseHTTPRequestHandler):
             self._send_json(SESSION.map_json())
         elif self.path == "/stats":
             path = generate_report(load_history())
+            self._send_file(path, "text/html; charset=utf-8")
+        elif self.path == "/regles":
+            path = generate_rules()
             self._send_file(path, "text/html; charset=utf-8")
         else:
             self.send_error(404)
