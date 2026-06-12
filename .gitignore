@@ -1,4 +1,6 @@
 __pycache__/
 *.pyc
 profile.json
+history.json
+stats.html
 .DS_Store
