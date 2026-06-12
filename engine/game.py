@@ -10,10 +10,8 @@ from functools import lru_cache
 
 from . import ai
 from .entities import (
+    BUILDING_ATTACKS,
     BUILDING_SPECS,
-    TOWER_ATTACK_PERIOD,
-    TOWER_DAMAGE,
-    TOWER_RANGE,
     Building,
     BuildingType,
     UNIT_SPECS,
@@ -269,24 +267,25 @@ class Game:
                     self.add_event(
                         f"Unité prête: {unit.spec.label_fr} ({team.name})"
                     )
-        if building.btype is BuildingType.TOWER:
-            self._tower_fire(building)
+        if building.btype in BUILDING_ATTACKS:
+            self._building_fire(building)
 
-    def _tower_fire(self, tower: Building) -> None:
-        if tower.attack_cooldown > 0:
-            tower.attack_cooldown -= 1
+    def _building_fire(self, building: Building) -> None:
+        attack_range, damage, period = BUILDING_ATTACKS[building.btype]
+        if building.attack_cooldown > 0:
+            building.attack_cooldown -= 1
             return
         target = None
         best = None
         for unit in self.units.values():
-            if unit.team_id == tower.team_id:
+            if unit.team_id == building.team_id:
                 continue
-            dist = max(abs(unit.x - tower.x), abs(unit.y - tower.y))
-            if dist <= TOWER_RANGE and (best is None or dist < best):
+            dist = max(abs(unit.x - building.x), abs(unit.y - building.y))
+            if dist <= attack_range and (best is None or dist < best):
                 target, best = unit, dist
         if target is not None:
-            target.hp -= TOWER_DAMAGE
-            tower.attack_cooldown = TOWER_ATTACK_PERIOD
+            target.hp -= damage
+            building.attack_cooldown = period
             ai.on_damaged(self, target)
 
     # Periodic systems

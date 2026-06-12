@@ -302,7 +302,7 @@ def _load_pile(game, unit: Unit, team: Team, deposit: Deposit, capacity: int) ->
 
 # Soldier: defend the base until a squad is ready, then hunt the enemy
 
-ATTACK_SQUAD_SIZE = 3
+ATTACK_SQUAD_SIZE = 4
 DEFENSE_RADIUS = 8
 
 

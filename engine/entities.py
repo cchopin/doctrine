@@ -142,9 +142,11 @@ BUILDING_SPECS: dict[BuildingType, BuildingSpec] = {
     ),
 }
 
-TOWER_RANGE = 3
-TOWER_DAMAGE = 5
-TOWER_ATTACK_PERIOD = 6  # ticks
+# Buildings able to shoot back: btype -> (range, damage, period in ticks)
+BUILDING_ATTACKS: dict[BuildingType, tuple[int, int, int]] = {
+    BuildingType.TOWER: (3, 5, 6),
+    BuildingType.HQ: (2, 3, 6),
+}
 
 
 @dataclass
