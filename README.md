@@ -25,11 +25,12 @@ python3 main.py --seed 42        # rejouer une carte identique
 python3 main.py --headless       # simulation IA contre IA (équilibrage)
 python3 main.py --headless --games 10 --seed 100
 python3 main.py --level 5        # tester un niveau sans toucher au profil
+python3 main.py --stats          # ouvrir la page web de statistiques
 ```
 
 Le terminal doit faire au moins 80x24. La progression est sauvegardée
 dans `profile.json` à la racine du projet (option `--profile` pour un
-autre chemin).
+autre chemin), l'historique des parties dans `history.json`.
 
 ## Règles du jeu
 
@@ -56,6 +57,11 @@ partie : seuls le niveau et l'expérience sont persistants.
 * Mécanique (niveau 3) : réparation automatique près des bâtiments
 * Logistique (niveau 4) : transporteurs plus rapides
 * Espionnage (niveau 5) : révèle ponctuellement des zones adverses
+* Fortification (niveau 6) : points de vie des bâtiments augmentés
+* Cartographie (niveau 7) : rayon de vision augmenté
+* Conscription (niveau 8) : soldats formés plus vite
+* Pillage (niveau 9) : chaque ennemi éliminé rapporte des ressources
+* Frénésie (niveau 10) : cadence d'attaque augmentée
 
 ### Déroulement
 
@@ -69,6 +75,19 @@ La partie se gagne en détruisant le QG adverse. Au bout de 20 minutes,
 l'équipe au meilleur score (stocks, unités, bâtiments, exploration)
 l'emporte. Une victoire rapporte 100 points d'expérience, une égalité 40,
 une défaite 15.
+
+En fin de partie, un récapitulatif compare les deux équipes (zones
+explorées, ressources récoltées, unités formées, perdues et éliminées,
+bâtiments, dégâts). Une touche relance directement une nouvelle partie,
+`q` quitte.
+
+### Statistiques
+
+Chaque partie est archivée dans `history.json` et la page `stats.html`
+est régénérée automatiquement : taux de victoire, série en cours,
+résultats par profil adverse et par composition jouée, points investis
+en moyenne dans les victoires contre les défaites, historique détaillé.
+`python3 main.py --stats` l'ouvre dans le navigateur.
 
 ### Unités
 
@@ -107,6 +126,7 @@ Votre équipe est bleue, l'adversaire est rouge.
 ### Touches
 
 * flèches : déplacer la vue sur la carte
+* `b` : recentrer la vue sur votre base
 * `p` : pause
 * `+` / `-` : vitesse de simulation
 * `l` : afficher ou masquer la légende
