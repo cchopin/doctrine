@@ -30,9 +30,17 @@ h1 { margin: 0; font-size: 2rem; letter-spacing: .5px; }
 .sub { color: #8a94a8; margin: .2rem 0 0; }
 .form { margin-top: .9rem; display: flex; align-items: center; gap: 4px; }
 .form .lbl { color: #8a94a8; font-size: .8rem; margin-right: .4rem; }
-.sq { width: 13px; height: 13px; border-radius: 3px; display: inline-block; }
-.sq.w { background: #4ade80; } .sq.l { background: #f87171; }
-.sq.d { background: #fbbf24; }
+.sq {
+  width: 16px; height: 16px; border-radius: 4px; display: inline-flex;
+  align-items: center; justify-content: center;
+  font-size: 10px; font-weight: 700; color: #0e1116;
+}
+.sq.w { background: #56b4e9; }
+.sq.l {
+  background: repeating-linear-gradient(
+    135deg, #e69f00 0 3px, #c07e10 3px 6px);
+}
+.sq.d { background: #9aa3b5; }
 
 .cards {
   display: grid; grid-template-columns: repeat(4, 1fr); gap: .7rem;
@@ -44,7 +52,7 @@ h1 { margin: 0; font-size: 2rem; letter-spacing: .5px; }
 }
 .card .v { font-size: 1.45rem; font-weight: 700; line-height: 1.2; }
 .card .l { color: #8a94a8; font-size: .78rem; margin-top: .1rem; }
-.win { color: #4ade80; } .loss { color: #f87171; } .draw { color: #fbbf24; }
+.win { color: #56b4e9; } .loss { color: #e69f00; } .draw { color: #9aa3b5; }
 
 .cols { display: grid; grid-template-columns: 1fr 1fr; gap: .9rem; }
 @media (max-width: 760px) {
@@ -69,9 +77,12 @@ h2 { margin: 0 0 .9rem; font-size: 1rem; color: #aebdf0; }
   overflow: hidden; background: #0e1116;
 }
 .stack .s { height: 100%; }
-.stack .s.w { background: #34c06b; }
-.stack .s.d { background: #d9a323; }
-.stack .s.l { background: #d65a5a; }
+.stack .s.w { background: #4d9fd6; }
+.stack .s.d { background: #8c95a8; }
+.stack .s.l {
+  background: repeating-linear-gradient(
+    135deg, #e69f00 0 4px, #b87e0d 4px 8px);
+}
 .brow .val {
   width: 120px; min-width: 120px; color: #8a94a8; font-size: .8rem;
 }
@@ -86,12 +97,13 @@ h2 { margin: 0 0 .9rem; font-size: 1rem; color: #aebdf0; }
 }
 .div-track .bar { position: absolute; top: 0; bottom: 0; }
 .div-track .bar.pos {
-  left: 50%; background: linear-gradient(90deg, #2f9e5f, #4ade80);
+  left: 50%; background: linear-gradient(90deg, #3d83b8, #56b4e9);
   border-radius: 0 7px 7px 0;
 }
 .div-track .bar.neg {
-  right: 50%; background: linear-gradient(270deg, #b04848, #f87171);
-  border-radius: 7px 0 0 7px;
+  right: 50%; border-radius: 7px 0 0 7px;
+  background: repeating-linear-gradient(
+    135deg, #e69f00 0 4px, #b87e0d 4px 8px);
 }
 
 table { border-collapse: collapse; width: 100%; font-size: .86rem; }
@@ -106,9 +118,9 @@ tr:not(:last-child) td { border-bottom: 1px solid #1c2330; }
   display: inline-block; padding: .05rem .55rem; border-radius: 99px;
   font-size: .76rem; font-weight: 600;
 }
-.chip.w { background: #173527; color: #4ade80; }
-.chip.l { background: #3a1d1d; color: #f87171; }
-.chip.d { background: #3a2f15; color: #fbbf24; }
+.chip.w { background: #16293c; color: #56b4e9; }
+.chip.l { background: #382a10; color: #e8b54a; }
+.chip.d { background: #262b36; color: #aab3c5; }
 .empty { color: #677085; font-style: italic; }
 """
 
@@ -139,12 +151,15 @@ def _counts(matches: list[dict]) -> tuple[int, int, int]:
 def _recent_form(history: list[dict], limit: int = 20) -> str:
     if not history:
         return ""
-    cls = {WIN: "w", LOSS: "l", DRAW: "d"}
-    squares = "".join(
-        f'<span class="sq {cls.get(m["result"], "d")}" '
-        f'title="{escape(m["result"])} · {m["duration_min"]:.1f} min"></span>'
-        for m in history[-limit:]
-    )
+    style = {WIN: ("w", "V"), LOSS: ("l", "D"), DRAW: ("d", "E")}
+    parts = []
+    for match in history[-limit:]:
+        cls, letter = style.get(match["result"], ("d", "E"))
+        parts.append(
+            f'<span class="sq {cls}" title="{escape(match["result"])}'
+            f' · {match["duration_min"]:.1f} min">{letter}</span>'
+        )
+    squares = "".join(parts)
     return (
         '<div class="form"><span class="lbl">Forme récente</span>'
         f"{squares}</div>"
@@ -316,17 +331,20 @@ def generate_report(
 <div class="cols">
 <section class="panel">
 <h2>Résultats par profil adverse</h2>
+<p class="hint">Bleu: victoires · gris: égalités · orange hachuré: défaites</p>
 {_grouped_section(history, lambda m: m["ai_profile"], str, min_games=1)}
 </section>
 <section class="panel">
 <h2>Résultats par composition jouée</h2>
+<p class="hint">Bleu: victoires · gris: égalités · orange hachuré: défaites</p>
 {_grouped_section(history, lambda m: m["composition"], _composition_label)}
 </section>
 </div>
 <section class="panel">
 <h2>Quelles compétences font gagner ?</h2>
 <p class="hint">Écart de points investis en moyenne entre vos victoires
-et vos défaites. À droite en vert: davantage présent dans les victoires.</p>
+et vos défaites. À droite en bleu: davantage présent dans les victoires.
+À gauche en orange hachuré: davantage présent dans les défaites.</p>
 {_skill_delta_section(history)}
 </section>
 <section class="panel">
