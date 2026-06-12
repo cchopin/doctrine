@@ -1,4 +1,4 @@
-# Fable
+# Doctrine
 
 Jeu de stratégie automatisé en terminal, inspiré des 4X. Deux équipes
 s'affrontent sur une carte générée aléatoirement. Le joueur ne contrôle

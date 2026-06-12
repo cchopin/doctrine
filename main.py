@@ -43,7 +43,7 @@ SPEED_STEPS = [0.25, 0.5, 1.0, 1.5, 2.0, 3.0, 4.0]
 
 def parse_args(argv: list[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Jeu de stratégie automatisé en terminal."
+        description="Doctrine, jeu de stratégie automatisé en terminal."
     )
     parser.add_argument(
         "--seed", type=int, default=None,
@@ -146,7 +146,7 @@ def prep_screen(stdscr, profile: Profile, level: int) -> dict[str, int] | None:
     while True:
         stdscr.erase()
         spent = sum(allocation.values())
-        title = f"Préparation de la partie  |  Niveau {level}"
+        title = f"DOCTRINE  |  Préparation de la partie  |  Niveau {level}"
         xp_line = (
             f"{xp_bar(profile)}  Victoires {profile.wins}"
             f"  Défaites {profile.losses}"

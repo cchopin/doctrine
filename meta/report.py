@@ -199,11 +199,11 @@ def generate_report(
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<title>Fable, statistiques</title>
+<title>Doctrine, statistiques</title>
 <style>{CSS}</style>
 </head>
 <body>
-<h1>Fable</h1>
+<h1>Doctrine</h1>
 <p class="sub">Statistiques de vos parties, générées localement.</p>
 {_summary_cards(history)}
 <h2>Résultats par profil adverse</h2>
