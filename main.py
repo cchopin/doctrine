@@ -68,6 +68,14 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
         "--stats", action="store_true",
         help="génère la page web de statistiques et l'ouvre",
     )
+    parser.add_argument(
+        "--web", action="store_true",
+        help="lance l'interface web (recommandé)",
+    )
+    parser.add_argument(
+        "--port", type=int, default=8765,
+        help="port de l'interface web",
+    )
     return parser.parse_args(argv)
 
 
@@ -385,6 +393,11 @@ def run_ui(stdscr, args: argparse.Namespace) -> None:
 def main(argv: list[str] | None = None) -> int:
     locale.setlocale(locale.LC_ALL, "")
     args = parse_args(argv if argv is not None else sys.argv[1:])
+    if args.web:
+        from web.server import serve
+
+        serve(args.port)
+        return 0
     if args.stats:
         import webbrowser
 

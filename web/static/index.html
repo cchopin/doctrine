@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Doctrine</title>
+<link rel="stylesheet" href="/static/app.css">
+</head>
+<body>
+<div class="bg-glow"></div>
+
+<header class="top">
+  <div class="brand">
+    <span class="logo">⌬</span>
+    <div>
+      <h1>Doctrine</h1>
+      <p class="tagline">Fixez la doctrine. Vos troupes font la guerre.</p>
+    </div>
+  </div>
+  <div class="top-right">
+    <div class="profile-chip" id="profile-chip">
+      <div class="lvl">Niv. <b id="p-level">1</b></div>
+      <div class="xpwrap"><div class="xpbar" id="p-xpbar"></div></div>
+      <div class="record" id="p-record"></div>
+    </div>
+    <button class="ghost" id="btn-rules">Règles</button>
+    <a class="ghost" href="/stats" target="_blank">Stats</a>
+  </div>
+</header>
+
+<main id="setup-view">
+  <section class="panel setup-panel">
+    <h2>Composez votre doctrine</h2>
+    <p class="muted">Répartissez vos points, vos unités feront le reste.
+      <span id="next-unlock"></span></p>
+    <div class="budget-line">
+      Points restants <span class="budget" id="budget">10</span>
+    </div>
+    <div id="skills"></div>
+    <div class="setup-actions">
+      <label class="toggle">
+        <input type="checkbox" id="idle-toggle" checked>
+        <span class="knob"></span>
+        Mode idle : les parties s'enchaînent
+      </label>
+      <button class="primary" id="btn-start">Lancer la bataille</button>
+    </div>
+  </section>
+</main>
+
+<main id="game-view" hidden>
+  <div class="game-grid">
+    <div class="map-wrap panel">
+      <canvas id="map" width="960" height="640"></canvas>
+    </div>
+    <aside class="hud">
+      <div class="panel hud-block">
+        <div class="hud-row">
+          <span class="time" id="hud-time">00:00</span>
+          <span class="muted" id="hud-opponent"></span>
+        </div>
+        <div class="hud-row controls">
+          <button class="ctrl" data-speed="0.5">x0.5</button>
+          <button class="ctrl active" data-speed="1">x1</button>
+          <button class="ctrl" data-speed="2">x2</button>
+          <button class="ctrl" data-speed="4">x4</button>
+          <button class="ctrl" data-speed="8">x8</button>
+          <button class="ctrl" id="btn-pause">⏸</button>
+        </div>
+      </div>
+      <div class="panel team-card player" id="team-0"></div>
+      <div class="panel team-card enemy" id="team-1"></div>
+      <div class="panel events-block">
+        <h3>Événements</h3>
+        <ul id="events"></ul>
+      </div>
+      <button class="ghost wide" id="btn-stop">Modifier la doctrine</button>
+    </aside>
+  </div>
+</main>
+
+<div class="overlay" id="recap-overlay" hidden>
+  <div class="panel recap">
+    <h2 id="recap-title">Victoire</h2>
+    <p class="muted" id="recap-sub"></p>
+    <table id="recap-table"></table>
+    <p class="xpline" id="recap-xp"></p>
+    <p class="muted" id="recap-countdown"></p>
+    <div class="recap-actions">
+      <button class="primary" id="btn-next">Bataille suivante</button>
+      <button class="ghost" id="btn-config">Modifier la doctrine</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="rules-overlay" hidden>
+  <div class="panel rules">
+    <button class="close" id="btn-close-rules">✕</button>
+    <h2>Règles du jeu</h2>
+    <div class="rules-body">
+      <h3>Principe</h3>
+      <p>Doctrine est un auto-battler stratégique. Vous ne contrôlez pas
+      vos unités : vous répartissez des points de compétences avant la
+      partie, puis votre armée explore, récolte, construit et combat
+      toute seule. L'adversaire fait de même avec une stratégie tirée au
+      hasard (guerrier, économiste, explorateur, équilibré).</p>
+
+      <h3>Victoire</h3>
+      <p>Détruisez le QG adverse. Au bout de 20 minutes, l'équipe au
+      meilleur score l'emporte. Victoire: +100 xp, égalité: +40,
+      défaite: +15. Monter de niveau donne plus de points à répartir et
+      débloque compétences et bâtiments.</p>
+
+      <h3>Unités</h3>
+      <p><b>s</b> éclaireur : lève le brouillard de guerre ·
+      <b>w</b> ouvrier : récolte et construit ·
+      <b>t</b> transporteur : ramène les récoltes ·
+      <b>S</b> soldat : défend la base puis attaque en escouade.</p>
+
+      <h3>Bâtiments</h3>
+      <p><b>B</b> QG (riposte aux assauts) ·
+      <b>E</b> entrepôt (niv. 2) : dépôt avancé ·
+      <b>C</b> caserne (niv. 3) : forme les soldats plus vite ·
+      <b>M</b> marché (niv. 5) : vend le surplus ·
+      <b>Y</b> tour de garde (science) : tire sur les ennemis.</p>
+
+      <h3>Ressources</h3>
+      <p><b>%</b> nourriture (forme les unités) · <b>T</b> bois ·
+      <b>^</b> minerai · <b>*</b> cristal. Les ouvriers empilent leur
+      récolte sur le gisement, les transporteurs font la navette.</p>
+
+      <h3>Compétences</h3>
+      <p>Exploration (vitesse), Combat (dégâts et PV), Récolte,
+      Transport, Construction, Tradeur, puis au fil des niveaux :
+      Science, Mécanique, Logistique, Espionnage, Fortification,
+      Cartographie, Conscription, Pillage, Frénésie.</p>
+
+      <h3>Mode idle</h3>
+      <p>Activé, les parties s'enchaînent automatiquement avec votre
+      doctrine. Laissez tourner, regardez les statistiques grimper.</p>
+    </div>
+  </div>
+</div>
+
+<script src="/static/app.js"></script>
+</body>
+</html>
