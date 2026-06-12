@@ -1,10 +1,19 @@
 # Doctrine
 
-Jeu de stratégie automatisé en terminal, inspiré des 4X. Deux équipes
+Fixez la doctrine avant la bataille, vos troupes font la guerre.
+
+Doctrine est un auto-battler stratégique inspiré des 4X. Deux équipes
 s'affrontent sur une carte générée aléatoirement. Le joueur ne contrôle
 pas ses unités : il répartit des points de compétences avant la partie,
-puis les unités agissent de manière autonome. C'est un auto-battler
-stratégique.
+puis ses armées explorent, récoltent, construisent et combattent de
+manière autonome. Zéro dépendance : Python et sa bibliothèque standard,
+avec une interface web et une interface terminal.
+
+![Partie en cours](docs/game.png)
+
+| Préparation | Statistiques |
+| --- | --- |
+| ![Écran de préparation](docs/setup.png) | ![Page de statistiques](docs/stats.png) |
 
 ## Installation
 
@@ -20,7 +29,8 @@ python3 main.py
 ## Lancement
 
 ```sh
-python3 main.py                  # partie normale
+python3 main.py --web            # interface web (recommandé)
+python3 main.py                  # interface terminal (curses)
 python3 main.py --seed 42        # rejouer une carte identique
 python3 main.py --headless       # simulation IA contre IA (équilibrage)
 python3 main.py --headless --games 10 --seed 100
@@ -28,9 +38,13 @@ python3 main.py --level 5        # tester un niveau sans toucher au profil
 python3 main.py --stats          # ouvrir la page web de statistiques
 ```
 
-Le terminal doit faire au moins 80x24. La progression est sauvegardée
-dans `profile.json` à la racine du projet (option `--profile` pour un
-autre chemin), l'historique des parties dans `history.json`.
+L'interface web sert le jeu sur http://127.0.0.1:8765 (option `--port`) :
+configuration de la doctrine, carte en temps réel, popup de règles et
+mode idle où les parties s'enchaînent automatiquement, même navigateur
+fermé. En terminal, la fenêtre doit faire au moins 80x24. La progression
+est sauvegardée dans `profile.json` à la racine du projet (option
+`--profile` pour un autre chemin), l'historique des parties dans
+`history.json`.
 
 ## Règles du jeu
 
